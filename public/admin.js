@@ -11,6 +11,11 @@ export function adminView({state,header,icon,esc}) {
   };
   const count = (number, label, symbol) => `<div class="stat-card"><span class="stat-icon">${icon(symbol)}</span><div><span class="stat-value">${number}</span><span class="stat-label">${label}</span></div></div>`;
   return `${header('Administración de usuarios', 'Gestiona las cuentas, permisos y cursos desde la misma base SQLite.')}
+    <section class="panel admin-security">
+      <div><h2>Seguridad del administrador</h2>
+      <p class="subtitle">Actualiza tu contraseña sin modificar los datos académicos.</p></div>
+      <button type="button" class="button button-secondary" data-action="admin-own-password">Cambiar mi contraseña</button>
+    </section>
     <div class="stats admin-stats">
       ${count(students.length, 'Alumnos', 'book')}
       ${count(teachers.length, 'Docentes', 'teacher')}
@@ -45,6 +50,7 @@ export function adminView({state,header,icon,esc}) {
                   ${user.role === 'admin'
                     ? '<span class="small">Protegido</span>'
                     : `<button type="button" class="button button-ghost" data-action="admin-edit" data-id="${esc(user.id)}">Editar</button>
+                       <button type="button" class="button button-secondary" data-action="admin-reset-password" data-id="${esc(user.id)}">Restablecer contraseña</button>
                        ${user.role === 'student' ? `<button type="button" class="button button-secondary" data-action="admin-courses" data-id="${esc(user.id)}">Cursos</button>` : ''}`}
                 </div></td>
               </tr>`).join('')}
@@ -67,9 +73,8 @@ export function adminEditForm({user,esc}) {
         <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Docente</option>
       </select>
     </div>
-    <div class="form-field"><label for="admin-edit-password">Nueva contraseña (opcional)</label><input id="admin-edit-password" name="password" type="password" autocomplete="new-password" minlength="10" placeholder="Dejar vacío para conservar la actual"></div>
     <label class="admin-checkbox"><input type="checkbox" name="isActive" ${user.isActive ? 'checked' : ''}> Permitir el acceso a AulaRaíz</label>
-    <p class="small">Al cambiar el rol, la contraseña o el estado se cerrarán las sesiones anteriores. Los resultados existentes no se eliminan.</p>
+    <p class="small">Al cambiar el rol o el estado se cerrarán las sesiones anteriores. Los resultados existentes no se eliminan.</p>
     <button type="submit" class="button button-primary">Guardar cambios</button>
   </form>`;
 }
@@ -84,5 +89,26 @@ export function adminCoursesForm({user,courses,esc}) {
     </div>
     <p class="small">El cambio se aplicará en el servidor inmediatamente; el alumno verá su nueva selección cuando vuelva a conectarse.</p>
     <button type="submit" class="button button-primary">Guardar cursos habilitados</button>
+  </form>`;
+}
+
+export function adminResetPasswordForm({ user, esc }) {
+  return `<form id="admin-reset-password-form" autocomplete="off">
+    <input type="hidden" name="id" value="${esc(user.id)}">
+    <p>Estás restableciendo el acceso de <strong>${esc(user.name)}</strong>. Su contraseña anterior dejará de funcionar.</p>
+    <div class="form-field"><label for="reset-new-password">Nueva contraseña</label><input id="reset-new-password" name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" required></div>
+    <div class="form-field"><label for="reset-confirm-password">Confirmar nueva contraseña</label><input id="reset-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" required></div>
+    <p class="small">El servidor guardará una contraseña protegida en SQLite y cerrará las sesiones actuales de este usuario. No se borrarán sus avances.</p>
+    <button class="button button-primary" type="submit">Confirmar restablecimiento</button>
+  </form>`;
+}
+
+export function adminOwnPasswordForm() {
+  return `<form id="admin-own-password-form" autocomplete="off">
+    <div class="form-field"><label for="own-current-password">Contraseña actual</label><input id="own-current-password" name="currentPassword" type="password" autocomplete="current-password" required></div>
+    <div class="form-field"><label for="own-new-password">Nueva contraseña</label><input id="own-new-password" name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" required></div>
+    <div class="form-field"><label for="own-confirm-password">Confirmar nueva contraseña</label><input id="own-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" required></div>
+    <p class="small">Después del cambio tendrás que volver a iniciar sesión con tu nueva contraseña.</p>
+    <button class="button button-primary" type="submit">Guardar mi nueva contraseña</button>
   </form>`;
 }
