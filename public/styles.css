@@ -21,3 +21,13 @@
 
 /* Ajustes de legibilidad y teclado */
 .subtitle{font-size:13px}.small,.stat-label,.course-meta,.page-footer{font-size:11px}.notice,.course-body p{font-size:12px}.course-meta{flex-wrap:wrap}.course-card:focus-within{border-color:#91ac92;box-shadow:0 0 0 3px rgba(145,172,146,.18)}.button:focus-visible,.icon-button:focus-visible,.nav-link:focus-visible,a:focus-visible{outline:3px solid #96bc76;outline-offset:3px}
+
+/* Los títulos informativos no deben mostrar el cursor de edición. */
+h1,h2,h3,h4,h5,h6,.panel-title,.eyebrow,.hero-kicker {
+  cursor: default;
+}
+
+/* Mantener el cursor de acción cuando el título pertenece a un enlace o botón. */
+a :is(h1,h2,h3,h4,h5,h6),button :is(h1,h2,h3,h4,h5,h6) {
+  cursor: pointer;
+}
