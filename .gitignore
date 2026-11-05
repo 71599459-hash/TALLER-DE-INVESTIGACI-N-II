@@ -22,3 +22,7 @@ node_modules/
 *.pid
 .DS_Store
 Thumbs.db
+
+# Resultados de pruebas de navegador (se generan al ejecutar la prueba)
+/tests/evidence/*
+!/tests/evidence/.gitkeep

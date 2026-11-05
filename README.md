@@ -39,7 +39,15 @@ Inicia sesión con acceso al servidor y descarga el curso que quieras estudiar. 
 npm run verify
 ```
 
-La prueba de navegador `tests/e2e.mjs` requiere Playwright y un navegador compatible. Debe probarse por separado en un celular real antes de usarlo en una exposición o demostración presencial.
+Para ejecutar la prueba de interfaz con Chromium:
+
+```sh
+npm install
+npx playwright install chromium
+npm run test:e2e
+```
+
+Puedes indicar la ruta de Chrome o Edge en la variable `AULARAIZ_BROWSER`. La prueba crea una base de datos temporal, genera los resultados en `tests/evidence` y no utiliza los datos de trabajo. La prueba en navegador emulado no sustituye la verificación en un celular real.
 
 ## Protección de los datos
 
