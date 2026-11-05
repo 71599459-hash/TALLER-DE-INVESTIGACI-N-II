@@ -73,6 +73,12 @@ try {
   assert.equal(await secondTab.locator('#password').inputValue(), '');
   await secondTab.close();
   mark('Una pestaña nueva solicita inicio de sesión');
+  await page.reload();
+  await page.locator('#login-form').waitFor();
+  assert.equal(await page.locator('#email').inputValue(), '');
+  mark('Al recargar con el servidor activo se solicita iniciar sesión');
+  await login();
+  await page.locator('h1').filter({ hasText: 'Hola' }).waitFor();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   const studentSession = await page.evaluate(() => JSON.parse(sessionStorage.getItem('aularaiz-session')));
   await page.locator('[data-action="download"][data-id="ciencias"]').click();

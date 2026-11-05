@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearSession, readSession, saveSession, sessionBelongsToServer } from '../public/session.js';
+import { clearSession, readSession, saveSession, canResumeOfflineSession } from '../public/session.js';
 
 const token = 'a'.repeat(64);
 const saved = {token, serverId: 'servidor-A', user: {id:'alumno',role:'student'}};
@@ -54,18 +54,23 @@ test('la sesión está disponible solo en la pestaña actual', async () => {
   });
 });
 
-test('un reinicio del servidor exige volver a ingresar', async () => {
+test('el servidor disponible exige iniciar sesión incluso al recargar la pestaña', async () => {
   await browser(true, async () => {
-    assert.equal(await sessionBelongsToServer(saved), true);
-    globalThis.fetch = async () => ({ok:true,json:async () => ({serverId:'servidor-B'})});
-    assert.equal(await sessionBelongsToServer(saved), false);
+    assert.equal(await canResumeOfflineSession(), false);
+  });
+});
+
+test('si el servidor no responde, se puede retomar el trabajo descargado', async () => {
+  await browser(true, async () => {
+    globalThis.fetch = async () => { throw Error('Servidor no disponible'); };
+    assert.equal(await canResumeOfflineSession(), true);
   });
 });
 
 test('una recarga sin conexión conserva la sesión de la pestaña', async () => {
   await browser(false, async () => {
     globalThis.fetch = async () => { throw Error('No hay internet'); };
-    assert.equal(await sessionBelongsToServer(saved), true);
+    assert.equal(await canResumeOfflineSession(), true);
   });
 });
 

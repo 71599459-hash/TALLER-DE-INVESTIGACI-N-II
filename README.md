@@ -31,7 +31,7 @@ Abre `http://localhost:4173` en Chrome o Edge. El servidor crea cursos y usuario
 
 ## Inicio de sesión
 
-Al abrir AulaRaíz en una pestaña nueva se solicitan las credenciales. La sesión se guarda únicamente en esa pestaña para que puedas recargar actividades descargadas sin conexión. Al reiniciar el servidor, será necesario iniciar sesión otra vez cuando el navegador vuelva a comunicarse con él.
+Al abrir AulaRaíz en una pestaña nueva se solicitan las credenciales. Cuando el servidor está disponible, abrir o recargar AulaRaíz muestra siempre el formulario de acceso. La sesión temporal permite continuar con actividades ya descargadas únicamente cuando el navegador no puede contactar al servidor.
 
 Los cursos descargados, borradores y avances pendientes se mantienen en IndexedDB por usuario. Cerrar sesión no los elimina: ingresa con la misma cuenta para recuperarlos.
 

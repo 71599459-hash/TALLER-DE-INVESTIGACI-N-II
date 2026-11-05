@@ -1,5 +1,5 @@
 import * as db from './db.js';
-import { clearSession, readSession, saveSession, sessionBelongsToServer } from './session.js';
+import { clearSession, readSession, saveSession, canResumeOfflineSession } from './session.js';
 
 const root = document.querySelector('#app');
 const state = { session: null, data: null, downloads: [], outbox: [], view: 'home', courseId: null, connected: navigator.onLine, syncing: false, downloading: null, search: '', modal: null, installPrompt: null, lastSync: null, notice: '', swReady: false, syncError: '' };
@@ -188,7 +188,7 @@ async function restoreSession() {
   const saved = readSession();
   if (!saved) return;
 
-  if (!await sessionBelongsToServer(saved)) {
+  if (!await canResumeOfflineSession()) {
     clearSession();
     return;
   }
