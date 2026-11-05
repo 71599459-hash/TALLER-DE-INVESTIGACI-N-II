@@ -42,6 +42,13 @@ Los cursos descargados, borradores y avances pendientes se mantienen en IndexedD
 - `tests/`: pruebas de API y navegador.
 - `scripts/`: comandos de ejecución, HTTPS y respaldo en Windows.
 - `.devcontainer/`: entorno de GitHub Codespaces.
+- `documentacion/`: arquitectura técnica y notas de operación.
+
+## Trabajar con otros desarrolladores
+
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para preparar una copia del proyecto, trabajar en ramas y proponer cambios sin afectar los datos de otros integrantes. La descripción de los componentes y las tablas está en [documentacion/ARQUITECTURA.md](documentacion/ARQUITECTURA.md).
+
+Cada computadora utiliza su **propia** carpeta `data/`, ignorada por Git. Compartir cambios de código mediante `git push` no comparte los usuarios, contraseñas ni calificaciones de SQLite. Para obtener una copia de datos de prueba hay que exportarla o respaldarla por separado y tratarla como información privada.
 
 ## Administración de usuarios y cursos
 
@@ -87,4 +94,4 @@ Puedes indicar la ruta de Chrome o Edge en la variable `AULARAIZ_BROWSER`. La pr
 
 Es una versión académica de demostración. No utilices información de alumnos reales con las cuentas incluidas. Las carpetas `data`, `data-debug`, `respaldos`, `logs` y `certs` contienen datos de ejecución que no deben publicarse en GitHub. Realiza una copia de seguridad de la carpeta `data` antes de actualizar una instalación existente.
 
-Para uso institucional faltan cuentas individuales, permisos por curso y configuración HTTPS confiable.
+Para uso institucional existen controles básicos de usuarios y asignación de cursos, pero todavía se requiere HTTPS confiable, gestión operativa de respaldos, recuperación de accesos y evaluación de seguridad antes de manejar información real de estudiantes.

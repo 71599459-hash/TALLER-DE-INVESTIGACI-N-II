@@ -1,4 +1,4 @@
-const CACHE = 'aularaiz-shell-v9';
+const CACHE = 'aularaiz-shell-v10';
 const SHELL = ['/', '/index.html', '/styles.css', '/app.js', '/admin.js', '/db.js', '/session.js', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
