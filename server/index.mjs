@@ -11,7 +11,8 @@ import { seed } from './seed.mjs';
 import {
   AccountError, migrateAccounts, accountByEmail, accountByTokenHash,
   publicAccount, assignedCourses, requireCourseAccess, requireAdministrator,
-  listManagedUsers, createManagedUser, updateManagedUser, setStudentCourses
+  listManagedUsers, createManagedUser, updateManagedUser, setStudentCourses,
+  changeAdministratorPassword
 } from './access.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -190,6 +191,12 @@ export function createApp(options = {}) {
         const attempts = attemptRows.map(r => ({ ...JSON.parse(r.result), id: r.id, userId: r.user_id, studentName: r.student_name, answers: JSON.parse(r.answers) }));
         const progress = db.prepare('SELECT * FROM progress WHERE user_id=? ORDER BY updated_at').all(user.id).map(r => ({ materialId: r.material_id, courseId: r.course_id, completed: Boolean(r.completed), updatedAt: r.updated_at }));
         return json(res, 200, { user: publicUser(user), courses, materials, quizzes, attempts, progress, serverTime: new Date().toISOString() });
+      }
+      if (path === '/api/admin/password' && method === 'POST') {
+        const administrator = auth(req);
+        requireAdministrator(administrator);
+        changeAdministratorPassword(db, administrator, await readJson(req));
+        return json(res, 200, { ok: true });
       }
       if (path === '/api/admin/users' && method === 'GET') {
         requireAdministrator(auth(req));

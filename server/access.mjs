@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { passwordHash } from './seed.mjs';
 
 export class AccountError extends Error {
@@ -195,6 +195,37 @@ export function setStudentCourses(db, id, courseIds) {
     throw error;
   }
   return { userId: id, courseIds: assignedCourses(db, id) };
+}
+
+// La contraseña propia requiere conocer la anterior y no modifica ningún otro dato.
+export function changeAdministratorPassword(db, user, { currentPassword, newPassword } = {}) {
+  requireAdministrator(user);
+  if (typeof currentPassword !== 'string' || !currentPassword || currentPassword.length > 200) {
+    reject(400, 'Ingresa tu contraseña actual.');
+  }
+
+  const nextPassword = validPassword(newPassword);
+  const account = existingAccount(db, user.id);
+  const [salt, hash] = account.password_hash.split(':');
+  const currentHash = scryptSync(currentPassword, salt, 64);
+  if (!timingSafeEqual(currentHash, Buffer.from(hash, 'hex'))) {
+    reject(401, 'La contraseña actual no es correcta.');
+  }
+  if (currentPassword === nextPassword) {
+    reject(400, 'La nueva contraseña debe ser diferente a la anterior.');
+  }
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.prepare('UPDATE users SET password_hash=? WHERE id=?')
+      .run(passwordHash(nextPassword), user.id);
+    // Invalidar todos los accesos anteriores, incluso el de esta pestaña.
+    db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 export function provisionAdministrator(db, { name, email, password }) {

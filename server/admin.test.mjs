@@ -197,4 +197,54 @@ test('administración, matrículas y compatibilidad de la base SQLite', async t 
     assert.equal((await login('administracion@aularaiz.local','ClaveAdmin2026!Segura')).body.user.role,'admin');
     assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM progress WHERE user_id=?').get(newStudentId).n,1);
   });
+
+  await t.test('el restablecimiento de contraseña de alumnos y docentes usa la misma SQLite', async () => {
+    const before = app.db.prepare("SELECT COUNT(*) AS n FROM users").get().n;
+    const teacher = app.db.prepare("SELECT id FROM users WHERE email='docente@aularaiz.local'").get();
+    const response = await request(`/api/admin/users/${teacher.id}`,{
+      token:adminToken,method:'PATCH',data:{password:'NuevaClaveDocente2026!'}
+    });
+    assert.equal(response.status,200);
+    assert.equal((await request('/api/bootstrap',{token:demoTeacher.body.token})).status,401);
+    assert.equal((await login('docente@aularaiz.local','Docente2026!')).status,401);
+    assert.equal((await login('docente@aularaiz.local','NuevaClaveDocente2026!')).status,200);
+    assert.equal(app.db.prepare("SELECT COUNT(*) AS n FROM users").get().n,before);
+    const stored=app.db.prepare('SELECT password_hash FROM users WHERE id=?').get(teacher.id).password_hash;
+    assert.equal(stored.includes('NuevaClaveDocente2026!'),false);
+    assert.match(stored,/^[0-9a-f]{32}:[0-9a-f]{128}$/);
+  });
+
+  await t.test('cambios realizados externamente en SQLite se ven al actualizar usuarios', async () => {
+    // Reproduce el guardado de un nombre y estado desde DB Browser for SQLite.
+    const id=newStudentId;
+    app.db.prepare('UPDATE users SET name=? WHERE id=?').run('Nombre editado en DB Browser',id);
+    app.db.prepare('INSERT INTO account_flags(user_id,enabled,is_admin) VALUES (?,0,0) ON CONFLICT(user_id) DO UPDATE SET enabled=0').run(id);
+    const updated=await request('/api/admin/users',{token:adminToken});
+    assert.equal(updated.status,200);
+    const record=updated.body.users.find(u=>u.id===id);
+    assert.equal(record.name,'Nombre editado en DB Browser');
+    assert.equal(record.isActive,false);
+    app.db.prepare('UPDATE account_flags SET enabled=1 WHERE user_id=?').run(id);
+    assert.equal((await request('/api/admin/users',{token:adminToken})).body.users.find(u=>u.id===id).isActive,true);
+  });
+
+  await t.test('solo el administrador puede cambiar su propia contraseña con su clave actual', async () => {
+    const endpoint='/api/admin/password';
+    assert.equal((await request(endpoint,{token:demoStudent.body.token,data:{currentPassword:'Alumno2026!',newPassword:'ClaveNueva2026!'}})).status,403);
+    assert.equal((await request(endpoint,{token:adminToken,data:{currentPassword:'Incorrecta2026!',newPassword:'ClaveNuevaAdmin2026!'}})).status,401);
+    assert.equal((await request(endpoint,{token:adminToken,data:{currentPassword:'ClaveAdmin2026!Segura',newPassword:'corta'}})).status,400);
+    assert.equal((await request(endpoint,{token:adminToken,data:{currentPassword:'ClaveAdmin2026!Segura',newPassword:'ClaveAdmin2026!Segura'}})).status,400);
+    const result=await request(endpoint,{token:adminToken,data:{currentPassword:'ClaveAdmin2026!Segura',newPassword:'ClaveNuevaAdmin2026!'}});
+    assert.equal(result.status,200);
+    assert.equal(result.body.ok,true);
+    assert.equal((await request('/api/admin/users',{token:adminToken})).status,401);
+    assert.equal((await login('administracion@aularaiz.local','ClaveAdmin2026!Segura')).status,401);
+    const newLogin=await login('administracion@aularaiz.local','ClaveNuevaAdmin2026!');
+    assert.equal(newLogin.status,200);
+    assert.equal(newLogin.body.user.role,'admin');
+    const hash=app.db.prepare('SELECT password_hash FROM users WHERE id=?').get(admin.id).password_hash;
+    assert.match(hash,/^[0-9a-f]{32}:[0-9a-f]{128}$/);
+    assert.equal(hash.includes('ClaveNuevaAdmin2026!'),false);
+    assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM progress').get().n>0,true);
+  });
 });

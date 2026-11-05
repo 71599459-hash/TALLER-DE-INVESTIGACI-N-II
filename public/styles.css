@@ -76,3 +76,10 @@ body {
 .admin-list tr[hidden]{display:none}
 @media(max-width:1150px){.admin-layout{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:640px){.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-row-actions{flex-direction:column;align-items:flex-start}}
+
+/* Seguridad de la cuenta en la administración */
+.admin-security{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.admin-security h2{margin-bottom:4px}
+.admin-security p{margin-bottom:0}
+.admin-security .button{white-space:nowrap}
+@media(max-width:640px){.admin-security .button{width:100%}}

@@ -127,3 +127,14 @@ FROM users u
 LEFT JOIN account_flags f ON f.user_id=u.id
 ORDER BY perfil, u.name;
 ```
+
+### Contraseñas y cambios desde DB Browser
+
+La interfaz administrativa incluye dos acciones independientes:
+
+- **Cambiar mi contraseña**: requiere la contraseña actual del administrador y registra una nueva en `users.password_hash`; revoca sus sesiones.
+- **Restablecer contraseña**: un administrador autenticado establece una clave nueva para un alumno o docente mediante `PATCH /api/admin/users/:id` con `{ "password": "..." }`. El servidor revoca las sesiones del usuario; conserva todos sus cursos, avances y calificaciones.
+
+**Nuevo endpoint:** `POST /api/admin/password`, exclusivo para administradores. Recibe `{ "currentPassword": "...", "newPassword": "..." }`. La clave nueva debe tener entre 10 y 200 caracteres y ser diferente a la anterior. Las contraseñas se almacenan con scrypt y sal aleatoria, nunca directamente.
+
+DB Browser for SQLite puede editar datos de la misma base `data/aularaiz.sqlite` y los cambios confirmados se reflejan al pulsar **Actualizar** en el panel. Para editar externamente, detén `npm start` y respalda `data`. No escribas contraseñas sin procesar en `users.password_hash`; utiliza el panel para mantener la autenticación compatible.
