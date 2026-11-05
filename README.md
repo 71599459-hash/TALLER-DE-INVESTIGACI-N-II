@@ -2,11 +2,24 @@
 
 Aplicación educativa local para consultar materiales y resolver cuestionarios con o sin conexión.
 
+## Abrir la aplicación desde GitHub
+
+**[Abrir AulaRaíz en GitHub Codespaces](https://codespaces.new/71599459-hash/TALLER-DE-INVESTIGACI-N-II?quickstart=1)**
+
+1. Inicia sesión en GitHub y selecciona **Create codespace** (o reanuda uno existente).
+2. Se preparará el entorno de Node.js 24 y se iniciará automáticamente el servidor de AulaRaíz.
+3. GitHub puede abrir la aplicación directamente. Si no lo hace, abre la pestaña **Ports / Puertos** y selecciona el enlace del puerto **4173** (AulaRaíz — aplicación).
+4. Entra con la cuenta de demostración. Los accesos de estudiante y docente están en [server/README.md](server/README.md).
+
+El puerto se mantiene **privado** por defecto: conserva así esa configuración. La dirección abierta será un enlace HTTPS de GitHub Codespaces, no `localhost` en tu PC. Puedes probar el inicio de sesión, los materiales, los cuestionarios, las descargas y la sincronización. Para comprobar el modo sin conexión, descarga una unidad antes de desactivar la red.
+
+Codespaces es un **entorno temporal de pruebas**, no un alojamiento público permanente. Los datos guardados allí son independientes de los de tu PC. No ingreses información real de estudiantes. Si eliminas el codespace, también puedes perder sus datos. Los Codespaces pueden consumir la cuota incluida en GitHub o generar costos según la cuenta.
+
 ## Tecnologías
 
 Interfaz: HTML, CSS y JavaScript. Servidor: Node.js. Datos del servidor: SQLite. Uso sin conexión: IndexedDB, Cache API y Service Worker. Instalación: PWA en navegadores compatibles.
 
-## Ejecutar
+## Ejecutar en tu propia PC
 
 Se necesita Node.js 22.13 o posterior.
 
