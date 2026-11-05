@@ -57,6 +57,7 @@ export function createApp(options = {}) {
   const dataDir = resolve(options.dataDir || process.env.AULARAIZ_DATA_DIR || resolve(here, '../data'));
   const publicDir = resolve(options.publicDir || resolve(here, '../public'));
   const uploadDir = resolve(dataDir, 'uploads');
+  const serverId = randomUUID();
   mkdirSync(uploadDir, { recursive: true });
   const db = new DatabaseSync(resolve(dataDir, 'aularaiz.sqlite'));
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
@@ -139,7 +140,7 @@ export function createApp(options = {}) {
       const url = new URL(req.url, 'http://localhost');
       const path = decodeURIComponent(url.pathname);
       const method = req.method;
-      if (path === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '1.0.0', serverTime: new Date().toISOString() });
+      if (path === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '1.1.0', serverId, serverTime: new Date().toISOString() });
       if (path === '/api/login' && method === 'POST') {
         const address = req.socket.remoteAddress || 'unknown';
         const blocked = failures.get(address);
@@ -157,7 +158,7 @@ export function createApp(options = {}) {
         failures.delete(address);
         const token = randomBytes(32).toString('hex');
         db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES (?,?,?)').run(createHash('sha256').update(token).digest('hex'), user.id, Date.now() + SESSION_MS);
-        return json(res, 200, { token, user: publicUser(user), expiresAt: new Date(Date.now() + SESSION_MS).toISOString() });
+        return json(res, 200, { token, user: publicUser(user), serverId, expiresAt: new Date(Date.now() + SESSION_MS).toISOString() });
       }
       if (path === '/api/logout' && method === 'POST') {
         auth(req);

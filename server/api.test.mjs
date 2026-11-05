@@ -26,14 +26,18 @@ test('API educativa: permisos, persistencia, reintentos y versiones offline', as
     const body = (response.headers.get('content-type') || '').includes('application/json') ? await response.json() : await response.text();
     return { response, body };
   };
-  let studentToken, teacherToken, studentBootstrap;
+  let studentToken, teacherToken, studentBootstrap, initialServerId;
 
   await t.test('inicio de sesión y aislamiento de claves correctas', async () => {
-    assert.equal((await request('/api/health')).body.ok, true);
+    const health = (await request('/api/health')).body;
+    assert.equal(health.ok, true);
+    assert.match(health.serverId, /^[a-f0-9-]{36}$/);
+    initialServerId = health.serverId;
     assert.equal((await request('/api/bootstrap')).response.status, 401);
     assert.equal((await request('/api/login', { data: { email: 'alumno@aularaiz.local', password: 'no-es-correcta' } })).response.status, 401);
     const student = await request('/api/login', { data: { email: 'alumno@aularaiz.local', password: 'Alumno2026!' } });
     studentToken = student.body.token;
+    assert.equal(student.body.serverId, initialServerId);
     assert.equal(student.body.user.role, 'student');
     const teacher = await request('/api/login', { data: { email: 'docente@aularaiz.local', password: 'Docente2026!' } });
     teacherToken = teacher.body.token;
@@ -91,6 +95,7 @@ test('API educativa: permisos, persistencia, reintentos y versiones offline', as
   await t.test('SQLite conserva registros y recibos después de reiniciar', async () => {
     app.close();
     app = createApp({ dataDir: dir, publicDir });
+    assert.notEqual((await request('/api/health')).body.serverId, initialServerId);
     const bootstrap = (await request('/api/bootstrap', { token: studentToken })).body;
     assert.equal(bootstrap.attempts.length, 1);
     assert.equal(bootstrap.progress[0].completed, true);

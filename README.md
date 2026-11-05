@@ -29,6 +29,20 @@ npm start
 
 Abre `http://localhost:4173` en Chrome o Edge. El servidor crea cursos y usuarios de demostración en el primer inicio. Consulta las cuentas de prueba en [server/README.md](server/README.md).
 
+## Inicio de sesión
+
+Al abrir AulaRaíz en una pestaña nueva se solicitan las credenciales. La sesión se guarda únicamente en esa pestaña para que puedas recargar actividades descargadas sin conexión. Al reiniciar el servidor, será necesario iniciar sesión otra vez cuando el navegador vuelva a comunicarse con él.
+
+Los cursos descargados, borradores y avances pendientes se mantienen en IndexedDB por usuario. Cerrar sesión no los elimina: ingresa con la misma cuenta para recuperarlos.
+
+## Estructura del proyecto
+
+- `public/`: interfaz web, estilos, almacenamiento local y caché PWA.
+- `server/`: API, sesiones, base SQLite y datos iniciales.
+- `tests/`: pruebas de API y navegador.
+- `scripts/`: comandos de ejecución, HTTPS y respaldo en Windows.
+- `.devcontainer/`: entorno de GitHub Codespaces.
+
 ## Uso sin conexión
 
 Inicia sesión con acceso al servidor y descarga el curso que quieras estudiar. Las lecturas y actividades descargadas quedan disponibles en el dispositivo. Los cuestionarios y avances pendientes se envían cuando la aplicación abierta recupera acceso al servidor local. Tener internet no basta si la computadora que ejecuta Node.js está apagada o desconectada.

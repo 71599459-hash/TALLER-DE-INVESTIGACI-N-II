@@ -48,7 +48,7 @@ async function login(role = 'student') {
   await page.locator('.sidebar-user').waitFor();
 }
 async function api(path, options = {}, session) {
-  session ||= await page.evaluate(() => JSON.parse(localStorage.getItem('aularaiz-session')));
+  session ||= await page.evaluate(() => JSON.parse(sessionStorage.getItem('aularaiz-session')));
   const response = await fetch(base + '/api' + path, { ...options, headers: { Authorization: `Bearer ${session.token}`, 'Content-Type': 'application/json', ...options.headers } });
   const result = await response.json();
   assert.ok(response.ok, `${path}: ${response.status} ${result.error || ''}`);
@@ -67,8 +67,14 @@ try {
   await noOverflow('acceso escritorio');
   await login();
   await page.locator('h1').filter({ hasText: 'Hola' }).waitFor();
+  const secondTab = await context.newPage();
+  await secondTab.goto(base);
+  await secondTab.locator('#login-form').waitFor();
+  assert.equal(await secondTab.locator('#password').inputValue(), '');
+  await secondTab.close();
+  mark('Una pestaña nueva solicita inicio de sesión');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-  const studentSession = await page.evaluate(() => JSON.parse(localStorage.getItem('aularaiz-session')));
+  const studentSession = await page.evaluate(() => JSON.parse(sessionStorage.getItem('aularaiz-session')));
   await page.locator('[data-action="download"][data-id="ciencias"]').click();
   await poll(async () => (await local('downloads')).some(item => item.course.id === 'ciencias'));
   await page.locator('.course-card').filter({ hasText: 'Ciencia y ambiente' }).getByText('Disponible sin conexión').waitFor();
