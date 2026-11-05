@@ -9,7 +9,7 @@ function validSession(value) {
     value.serverId.length > 0 &&
     value.user &&
     typeof value.user.id === 'string' &&
-    ['student', 'teacher'].includes(value.user.role));
+    ['student', 'teacher', 'admin'].includes(value.user.role));
 }
 
 export function clearSession() {

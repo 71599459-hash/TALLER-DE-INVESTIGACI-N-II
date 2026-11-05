@@ -58,3 +58,21 @@ body {
 :is(input, textarea)[readonly] {
   cursor: default;
 }
+
+/* Gestión de usuarios. Utiliza los estilos existentes de paneles y botones. */
+.admin-layout{grid-template-columns:minmax(260px,.8fr) minmax(0,1.6fr);align-items:start;gap:22px}
+.admin-list{min-width:0}
+.admin-list-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-list-title>.button{flex-shrink:0}
+.admin-users{width:100%;min-width:660px}
+.admin-users td{vertical-align:middle}
+.admin-row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.admin-row-actions .button{white-space:nowrap}
+.admin-checkbox{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;margin:12px 0;color:var(--forest);background:var(--white);cursor:pointer}
+.admin-checkbox:hover{border-color:#91ac92}
+.admin-checkbox input{margin-top:4px;accent-color:var(--forest);flex-shrink:0}
+.admin-course-list{display:grid;gap:7px;max-height:360px;overflow:auto}
+.admin-course-list .admin-checkbox{margin:0}
+.admin-list tr[hidden]{display:none}
+@media(max-width:1150px){.admin-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-row-actions{flex-direction:column;align-items:flex-start}}

@@ -1,8 +1,9 @@
 import * as db from './db.js';
+import { adminView, adminEditForm, adminCoursesForm } from './admin.js';
 import { clearSession, readSession, saveSession, canResumeOfflineSession } from './session.js';
 
 const root = document.querySelector('#app');
-const state = { session: null, data: null, downloads: [], outbox: [], view: 'home', courseId: null, connected: navigator.onLine, syncing: false, downloading: null, search: '', modal: null, installPrompt: null, lastSync: null, notice: '', swReady: false, syncError: '' };
+const state = { session: null, data: null, downloads: [], outbox: [], view: 'home', courseId: null, connected: navigator.onLine, syncing: false, downloading: null, search: '', modal: null, installPrompt: null, lastSync: null, notice: '', swReady: false, syncError: '', adminUsers: [] };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => state.session?.user.id;
 const key = value => `${uid()}:${value}`;
@@ -21,11 +22,24 @@ async function api(path, options={}) {
   return options.blob ? response.blob() : response.json();
 }
 async function loadLocal() {
-  state.downloads=(await db.all('downloads')).filter(item=>item.userId===uid());
+  const allowed = state.session?.user.role === 'student' && state.data
+    ? new Set(state.data.courses.map(course => course.id)) : null;
+  state.downloads=(await db.all('downloads')).filter(item =>
+    item.userId===uid() && (!allowed || allowed.has(item.course.id)));
   state.outbox=(await db.all('outbox')).filter(item=>item.userId===uid());
   state.lastSync=await db.get('kv',key('lastSync'));
 }
-async function refresh() { const data=await api('/bootstrap'); await db.put('kv',key('snapshot'),data); state.data=data; }
+async function loadAdministration() {
+  if (state.session?.user.role !== 'admin') return;
+  const result = await api('/admin/users');
+  state.adminUsers = result.users;
+}
+async function refresh() {
+  const data = await api('/bootstrap');
+  await db.put('kv', key('snapshot'), data);
+  state.data = data;
+  if (state.session?.user.role === 'admin') await loadAdministration();
+}
 function downloaded(courseId) { return state.downloads.find(d=>d.course.id===courseId); }
 function offline() { return !navigator.onLine || !state.connected; }
 function courseData(courseId) { const local=downloaded(courseId); return offline() ? local || {materials:[],quizzes:[]} : {materials:state.data.materials.filter(x=>x.courseId===courseId),quizzes:state.data.quizzes.filter(x=>x.courseId===courseId)}; }
@@ -57,9 +71,20 @@ function questionEditor(n) { return `<fieldset class="question-editor"><legend>P
 function guideView() { return `${header('Guía de uso','Instrucciones para descargar y enviar tus actividades.')}<div class="split-grid"><section class="panel"><h2>Cómo funciona</h2><ol class="steps-list"><li><strong>Conectar y descargar.</strong> El alumno ingresa y guarda una unidad completa.</li><li><strong>Aprender sin conexión.</strong> La interfaz, los contenidos descargados y las respuestas permanecen en el dispositivo.</li><li><strong>Recuperar conexión.</strong> La aplicación envía los eventos pendientes; el servidor verifica y confirma.</li><li><strong>Actualizar materiales.</strong> Las unidades descargadas reciben las nuevas versiones. Los intentos conservan la versión del cuestionario que respondieron.</li></ol></section><section class="panel"><h2>Tecnologías de esta versión</h2><p><strong>Interfaz:</strong> HTML, CSS y JavaScript con módulos.</p><p><strong>Servidor local:</strong> Node.js y API REST.</p><p><strong>Datos del servidor:</strong> SQLite y archivos locales.</p><p><strong>Sin conexión:</strong> IndexedDB, Service Worker y Cache API.</p><p><strong>Instalación:</strong> PWA en navegador compatible.</p></section><section class="panel"><h2>Guardar tus avances</h2><p>Los cursos descargados se almacenan en el navegador. Si borras los datos del sitio, podrías perder las respuestas que todavía no has enviado.</p><p>El servidor conserva las actividades confirmadas en la carpeta <strong>data</strong>. Es importante guardar copias de seguridad antes de reinstalar o cambiar de computadora.</p><p>Antes de utilizar cuentas reales, configura permisos por curso y HTTPS.</p></section><section class="panel"><h2>Instalar en PC o celular</h2><p><strong>PC:</strong> abre localhost:4173 desde Edge o Chrome y usa “Instalar aplicación” del navegador.</p><p><strong>Celular:</strong> conecta a la misma red de la PC y usa la dirección HTTPS con un certificado confiable. La guía local incluye la configuración.</p><p>El servidor puede estar en una red local sin salida a internet. Debe estar encendido y accesible para sincronizar.</p><button class="button button-primary" data-action="install">${icon('download')} Instalar o ver instrucciones</button></section></div><div class="notice">Versión académica con cuentas de demostración. Antes de usar datos reales se necesita gestión de usuarios, recuperación de acceso, permisos por curso, respaldo operativo y despliegue con HTTPS.</div>`; }
 function render() {
   if(!state.session||!state.data) return login();
-  const user=state.session.user, routes=[['home','home','Mi aprendizaje'],['courses','book','Mis cursos'],['downloads','download','Mis descargas'],['sync','sync','Sincronización'],...(user.role==='teacher'?[['teacher','teacher','Espacio docente']]:[]),['guide','help','Guía de uso']];
+  const user = state.session.user;
+  if (state.view === 'admin' && user.role !== 'admin') state.view = 'home';
+  if (state.view === 'teacher' && !['teacher', 'admin'].includes(user.role)) state.view = 'home';
+  const routes = [
+    ['home','home','Mi aprendizaje'],
+    ['courses','book','Mis cursos'],
+    ['downloads','download','Mis descargas'],
+    ['sync','sync','Sincronización'],
+    ...(['teacher','admin'].includes(user.role) ? [['teacher','teacher','Espacio docente']] : []),
+    ...(user.role==='admin' ? [['admin','shield','Administración']] : []),
+    ['guide','help','Guía de uso']
+  ];
   const active=state.view==='course'?'courses':state.view;
-  root.innerHTML=`<div class="shell"><aside class="sidebar" id="sidebar"><a href="#home" class="brand" aria-label="AulaRaíz inicio">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></a><div class="sidebar-label">MI AULA</div><nav aria-label="Menú principal">${routes.map(([view,i,title])=>`<button class="nav-link ${active===view?'active':''}" data-action="nav" data-view="${view}" ${active===view?'aria-current="page"':''}>${icon(i)}<span>${title}</span>${view==='sync'&&state.outbox.length?`<span class="nav-count">${state.outbox.length}</span>`:''}</button>`).join('')}</nav><div class="sidebar-footer"><div class="sidebar-tip">${icon('leaf')}<strong>Antes de desconectarte</strong><p>Descarga el material que vas a necesitar.</p></div><div class="sidebar-user"><span class="avatar">${esc(user.name.split(' ').slice(0,2).map(x=>x[0]).join(''))}</span><div><strong>${esc(user.name.split(' ').slice(0,2).join(' '))}</strong><span>${user.role==='teacher'?'Docente':'Estudiante'}</span></div><button class="icon-button" data-action="logout" title="Cerrar sesión" aria-label="Cerrar sesión">${icon('logout')}</button></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumbs"><button class="icon-button mobile-menu" data-action="menu" aria-label="Abrir menú">${icon('menu')}</button><span>Mi aula</span><span class="breadcrumb-separator">/</span><strong>${routes.find(r=>r[0]===active)?.[2]||'Mi aprendizaje'}</strong></div><div class="topbar-actions"><span class="connection-pill ${offline()?'is-offline':''}"><span class="status-dot"></span>${offline()?'Sin conexión al servidor':'Servidor disponible'}</span><button class="button button-ghost install-button" data-action="install">${icon('download')}<span>Instalar app</span></button></div></header><div class="page-content">${state.notice?`<div class="notice warning">${esc(state.notice)} <button class="button button-ghost" data-action="logout">Volver a ingresar</button></div>`:''}${!window.isSecureContext?'<div class="notice warning">Esta dirección HTTP permite ver la aplicación, pero instalarla y usarla sin conexión requiere HTTPS confiable. En la PC usa localhost.</div>':''}${({home,courses,course:courseDetail,downloads:downloadsView,sync:syncView,teacher:teacherView,guide:guideView}[state.view]||home)()}<footer class="page-footer"><span>AulaRaíz · Materiales con y sin conexión</span><span>Versión de demostración</span></footer></div></main></div>`;
+  root.innerHTML=`<div class="shell"><aside class="sidebar" id="sidebar"><a href="#home" class="brand" aria-label="AulaRaíz inicio">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></a><div class="sidebar-label">MI AULA</div><nav aria-label="Menú principal">${routes.map(([view,i,title])=>`<button class="nav-link ${active===view?'active':''}" data-action="nav" data-view="${view}" ${active===view?'aria-current="page"':''}>${icon(i)}<span>${title}</span>${view==='sync'&&state.outbox.length?`<span class="nav-count">${state.outbox.length}</span>`:''}</button>`).join('')}</nav><div class="sidebar-footer"><div class="sidebar-tip">${icon('leaf')}<strong>Antes de desconectarte</strong><p>Descarga el material que vas a necesitar.</p></div><div class="sidebar-user"><span class="avatar">${esc(user.name.split(' ').slice(0,2).map(x=>x[0]).join(''))}</span><div><strong>${esc(user.name.split(' ').slice(0,2).join(' '))}</strong><span>${user.role==='admin'?'Administrador':user.role==='teacher'?'Docente':'Estudiante'}</span></div><button class="icon-button" data-action="logout" title="Cerrar sesión" aria-label="Cerrar sesión">${icon('logout')}</button></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumbs"><button class="icon-button mobile-menu" data-action="menu" aria-label="Abrir menú">${icon('menu')}</button><span>Mi aula</span><span class="breadcrumb-separator">/</span><strong>${routes.find(r=>r[0]===active)?.[2]||'Mi aprendizaje'}</strong></div><div class="topbar-actions"><span class="connection-pill ${offline()?'is-offline':''}"><span class="status-dot"></span>${offline()?'Sin conexión al servidor':'Servidor disponible'}</span><button class="button button-ghost install-button" data-action="install">${icon('download')}<span>Instalar app</span></button></div></header><div class="page-content">${state.notice?`<div class="notice warning">${esc(state.notice)} <button class="button button-ghost" data-action="logout">Volver a ingresar</button></div>`:''}${!window.isSecureContext?'<div class="notice warning">Esta dirección HTTP permite ver la aplicación, pero instalarla y usarla sin conexión requiere HTTPS confiable. En la PC usa localhost.</div>':''}${({home,courses,course:courseDetail,downloads:downloadsView,sync:syncView,teacher:teacherView,admin:()=>adminView({state,header,icon,esc}),guide:guideView}[state.view]||home)()}<footer class="page-footer"><span>AulaRaíz · Materiales con y sin conexión</span><span>Versión de demostración</span></footer></div></main></div>`;
   if(state.view==='downloads') navigator.storage?.estimate().then(info=>{const el=document.querySelector('#storage-info'); if(el)el.textContent=`Este sitio usa ${size(info.usage||0)} de aproximadamente ${size(info.quota||0)} disponibles para el navegador.`;});
 }
 function navigate(view, id) { closeModal(); state.view=view; state.courseId=id||null; state.search=''; history.replaceState(null,'',`#${view}${id?'/'+encodeURIComponent(id):''}`); render(); window.scrollTo({top:0}); }
@@ -126,8 +151,21 @@ document.addEventListener('click',async event=>{
     if(action==='nav')navigate(button.dataset.view);
     if(action==='course')navigate('course',id);
     if(action==='menu')document.querySelector('#sidebar')?.classList.toggle('open');
+    if(action==='admin-reload'){await refresh();render();toast('Usuarios actualizados.');}
+    if(action==='admin-edit'){
+      const user=state.adminUsers.find(item=>item.id===id);
+      if(!user||user.role==='admin')throw new Error('Este usuario no se puede editar desde el panel.');
+      modal('Editar acceso',adminEditForm({user,esc}));
+      state.modal={type:'admin-edit'};
+    }
+    if(action==='admin-courses'){
+      const user=state.adminUsers.find(item=>item.id===id);
+      if(!user||user.role!=='student')throw new Error('Selecciona una cuenta de alumno.');
+      modal('Cursos habilitados',adminCoursesForm({user,courses:state.data.courses,esc}));
+      state.modal={type:'admin-courses'};
+    }
     if(action==='demo-student'||action==='demo-teacher'){const teacher=action==='demo-teacher';document.querySelector('#email').value=teacher?'docente@aularaiz.local':'alumno@aularaiz.local';document.querySelector('#password').value=teacher?'Docente2026!':'Alumno2026!';}
-    if(action==='logout'){const token=state.session?.token;if(navigator.onLine&&token)void fetch('/api/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}}).catch(()=>{});closeModal();clearSession();state.session=null;state.data=null;state.outbox=[];state.downloads=[];state.notice='';state.syncError='';login();}
+    if(action==='logout'){const token=state.session?.token;if(navigator.onLine&&token)void fetch('/api/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}}).catch(()=>{});closeModal();clearSession();state.session=null;state.data=null;state.outbox=[];state.downloads=[];state.adminUsers=[];state.notice='';state.syncError='';login();}
     if(action==='download')await downloadCourse(id);
     if(action==='sync')await sync(true);
     if(action==='material')await openMaterial(id);
@@ -143,12 +181,49 @@ document.addEventListener('click',async event=>{
   } catch(error){toast(error.message);}
 });
 document.addEventListener('submit',async event=>{
-  const form=event.target,formId=form.getAttribute('id');if(!['login-form','material-form','quiz-editor-form','attempt-form'].includes(formId))return;event.preventDefault();formBusy(form,true);
+  const form=event.target,formId=form.getAttribute('id');if(!['login-form','material-form','quiz-editor-form','attempt-form','admin-create-form','admin-edit-form','admin-courses-form'].includes(formId))return;event.preventDefault();formBusy(form,true);
   try{
     const values=new FormData(form);
     if(formId==='login-form'){
       const session=await api('/login',{method:'POST',body:JSON.stringify({email:values.get('email'),password:values.get('password')})});state.session=session;
-      await refresh();saveSession(session);await loadLocal();state.notice='';state.syncError='';state.view=session.user.role==='teacher'?'teacher':'home';location.hash=state.view;render();void sync();
+      await refresh();saveSession(session);await loadLocal();state.notice='';state.syncError='';state.view=session.user.role==='admin'?'admin':session.user.role==='teacher'?'teacher':'home';location.hash=state.view;render();void sync();
+    }
+    if(formId==='admin-create-form'){
+      const payload={
+        name:values.get('name'),
+        email:values.get('email'),
+        role:values.get('role'),
+        password:values.get('password')
+      };
+      await api('/admin/users',{method:'POST',body:JSON.stringify(payload)});
+      await loadAdministration();
+      render();
+      toast('Cuenta creada. Ya puedes asignarle cursos si es alumno.');
+    }
+    if(formId==='admin-edit-form'){
+      const id=values.get('id');
+      const payload={
+        name:values.get('name'),
+        email:values.get('email'),
+        role:values.get('role'),
+        isActive:values.has('isActive')
+      };
+      if(values.get('password'))payload.password=values.get('password');
+      await api('/admin/users/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)});
+      closeModal();
+      await loadAdministration();
+      render();
+      toast('Datos y acceso actualizados en SQLite.');
+    }
+    if(formId==='admin-courses-form'){
+      const id=values.get('id');
+      await api('/admin/users/'+encodeURIComponent(id)+'/courses',{
+        method:'PUT',body:JSON.stringify({courseIds:values.getAll('courseIds')})
+      });
+      closeModal();
+      await loadAdministration();
+      render();
+      toast('Cursos habilitados actualizados.');
     }
     if(formId==='material-form'){
       const payload=Object.fromEntries(['id','courseId','title','description','type','body'].map(k=>[k,values.get(k)]));if(!payload.id)delete payload.id;
@@ -173,7 +248,14 @@ document.addEventListener('change',async event=>{
     try{const quiz=state.modal.quiz,values=new FormData(document.querySelector('#attempt-form')),draft={};quiz.questions.forEach((_,n)=>{if(values.has(`answer-${n}`))draft[n]=Number(values.get(`answer-${n}`));});await db.put('drafts',key(`${quiz.id}:${quiz.version}`),draft);const el=document.querySelector('#draft-status');if(el)el.textContent='Borrador guardado en este dispositivo.';}catch{toast('No se pudo guardar el borrador. Revisa el espacio del dispositivo.');}
   }
 });
-document.addEventListener('input',event=>{if(event.target.id==='course-search'){state.search=event.target.value;const start=event.target.selectionStart;render();const field=document.querySelector('#course-search');field.focus();try{field.setSelectionRange(start,start);}catch{}}});
+document.addEventListener('input',event=>{
+  if(event.target.id==='admin-search'){
+    const search=event.target.value.toLocaleLowerCase('es').trim();
+    document.querySelectorAll('[data-admin-user-row]').forEach(row=>{
+      row.hidden=!row.textContent.toLocaleLowerCase('es').includes(search);
+    });
+  }
+  if(event.target.id==='course-search'){state.search=event.target.value;const start=event.target.selectionStart;render();const field=document.querySelector('#course-search');field.focus();try{field.setSelectionRange(start,start);}catch{}}});
 document.addEventListener('reset',event=>{if(event.target.getAttribute('id')==='material-form')setTimeout(()=>{document.querySelector('#material-edit-id').value='';document.querySelector('#article-field').hidden=false;document.querySelector('#file-field').hidden=true;},0);});
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&state.modal)closeModal();
@@ -207,9 +289,10 @@ async function restoreSession() {
     }
 
     const [route, course] = location.hash.slice(1).split('/');
-    state.view = ['home', 'courses', 'downloads', 'sync', 'guide', 'teacher', 'course'].includes(route) ? route : 'home';
+    state.view = ['home', 'courses', 'downloads', 'sync', 'guide', 'teacher', 'admin', 'course'].includes(route) ? route : 'home';
     state.courseId = course ? decodeURIComponent(course) : null;
-    if (state.view === 'teacher' && saved.user.role !== 'teacher') state.view = 'home';
+    if (state.view === 'teacher' && !['teacher', 'admin'].includes(saved.user.role)) state.view = 'home';
+    if (state.view === 'admin' && saved.user.role !== 'admin') state.view = 'home';
   } catch (error) {
     clearSession();
     state.session = null;

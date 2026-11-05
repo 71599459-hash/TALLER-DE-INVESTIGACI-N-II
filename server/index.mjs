@@ -8,6 +8,11 @@ import { resolve, dirname, extname, basename, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { seed } from './seed.mjs';
+import {
+  AccountError, migrateAccounts, accountByEmail, accountByTokenHash,
+  publicAccount, assignedCourses, requireCourseAccess, requireAdministrator,
+  listManagedUsers, createManagedUser, updateManagedUser, setStudentCourses
+} from './access.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MAX_FILE = 20 * 1024 * 1024;
@@ -51,7 +56,7 @@ async function readJson(req) {
   if (!plain(value)) fail(400, 'Se esperaba un objeto JSON.');
   return value;
 }
-function publicUser(row) { return { id: row.id, name: row.name, email: row.email, role: row.role }; }
+function publicUser(row) { return publicAccount(row); }
 
 export function createApp(options = {}) {
   const dataDir = resolve(options.dataDir || process.env.AULARAIZ_DATA_DIR || resolve(here, '../data'));
@@ -74,6 +79,7 @@ export function createApp(options = {}) {
     CREATE INDEX IF NOT EXISTS session_expiration ON sessions(expires_at);
   `);
   if (options.seed !== false) seed(db);
+  migrateAccounts(db);
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now());
   const failures = new Map();
 
@@ -81,9 +87,9 @@ export function createApp(options = {}) {
     const bearer = req.headers.authorization || '';
     if (!/^Bearer [a-f0-9]{64}$/.test(bearer)) fail(401, 'Inicia sesión para continuar.');
     const tokenHash = createHash('sha256').update(bearer.slice(7)).digest('hex');
-    const user = db.prepare('SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?').get(tokenHash, Date.now());
-    if (!user) fail(401, 'La sesión venció. Conéctate e inicia sesión nuevamente.');
-    if (teacher && user.role !== 'teacher') fail(403, 'Esta acción está disponible para docentes.');
+    const user = accountByTokenHash(db, tokenHash, Date.now());
+    if (!user || !user.access_enabled) fail(401, 'Tu sesión no está habilitada. Vuelve a ingresar o consulta al administrador.');
+    if (teacher && user.role !== 'teacher' && !user.access_admin) fail(403, 'Esta acción está disponible para docentes.');
     return user;
   }
   function courseExists(courseId) {
@@ -111,6 +117,7 @@ export function createApp(options = {}) {
         const row = db.prepare('SELECT data FROM quiz_versions WHERE quiz_id=? AND version=?').get(payload.quizId, payload.quizVersion);
         if (!row) fail(409, 'La versión del cuestionario no está disponible. El intento se conserva en el dispositivo para revisión.');
         const quiz = JSON.parse(row.data);
+        requireCourseAccess(db, user, quiz.courseId);
         if (!Array.isArray(payload.answers) || payload.answers.length !== quiz.questions.length || !payload.answers.every((answer, index) => Number.isInteger(answer) && answer >= 0 && answer < quiz.questions[index].options.length)) fail(400, 'Responde todas las preguntas con una opción válida.');
         const score = quiz.questions.reduce((n, question, index) => n + (question.correctIndex === payload.answers[index] ? 1 : 0), 0);
         result = { attemptId: event.id, quizId: quiz.id, quizVersion: quiz.version, score, total: quiz.questions.length, percentage: Math.round(score / quiz.questions.length * 100), submittedAt: now };
@@ -120,6 +127,7 @@ export function createApp(options = {}) {
         id(payload.materialId, 'Material');
         const row = db.prepare('SELECT course_id FROM materials WHERE id=?').get(payload.materialId);
         if (!row) fail(409, 'El material no existe en el servidor.');
+        requireCourseAccess(db, user, row.course_id);
         if (typeof payload.completed !== 'boolean') fail(400, 'El avance debe indicar si el material está completado.');
         if (payload.courseId !== undefined && payload.courseId !== row.course_id) fail(400, 'El material no pertenece al curso indicado.');
         result = { materialId: payload.materialId, courseId: row.course_id, completed: payload.completed, updatedAt: now };
@@ -148,7 +156,7 @@ export function createApp(options = {}) {
         const body = await readJson(req);
         const email = text(body.email, 'Correo', 200).toLowerCase();
         const password = text(body.password, 'Contraseña', 200);
-        const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+        const user = accountByEmail(db, email);
         const [salt, hash] = (user?.password_hash || `00000000000000000000000000000000:${'0'.repeat(128)}`).split(':');
         const matches = timingSafeEqual(scryptSync(password, salt, 64), Buffer.from(hash, 'hex'));
         if (!user || !matches) {
@@ -156,6 +164,7 @@ export function createApp(options = {}) {
           fail(401, 'Correo o contraseña incorrectos.');
         }
         failures.delete(address);
+        if (!user.access_enabled) fail(403, 'Esta cuenta está deshabilitada. Consulta al administrador.');
         const token = randomBytes(32).toString('hex');
         db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES (?,?,?)').run(createHash('sha256').update(token).digest('hex'), user.id, Date.now() + SESSION_MS);
         return json(res, 200, { token, user: publicUser(user), serverId, expiresAt: new Date(Date.now() + SESSION_MS).toISOString() });
@@ -167,17 +176,42 @@ export function createApp(options = {}) {
       }
       if (path === '/api/bootstrap' && method === 'GET') {
         const user = auth(req);
-        const courses = db.prepare('SELECT data FROM courses ORDER BY rowid').all().map(r => JSON.parse(r.data));
-        const materials = db.prepare('SELECT data FROM materials ORDER BY rowid').all().map(r => JSON.parse(r.data));
+        const allowed = user.role === 'student' ? new Set(assignedCourses(db, user.id)) : null;
+        const courses = db.prepare('SELECT data FROM courses ORDER BY rowid').all()
+          .map(r => JSON.parse(r.data)).filter(c => !allowed || allowed.has(c.id));
+        const materials = db.prepare('SELECT data FROM materials ORDER BY rowid').all()
+          .map(r => JSON.parse(r.data)).filter(m => !allowed || allowed.has(m.courseId));
         const quizzes = db.prepare('SELECT v.data FROM quizzes q JOIN quiz_versions v ON v.quiz_id=q.id AND v.version=q.version ORDER BY q.rowid').all().map(r => {
           const quiz = JSON.parse(r.data);
-          if (user.role !== 'teacher') quiz.questions = quiz.questions.map(({ correctIndex, ...question }) => question);
+          if (user.role === 'student') quiz.questions = quiz.questions.map(({ correctIndex, ...question }) => question);
           return quiz;
-        });
-        const attemptRows = user.role === 'teacher' ? db.prepare('SELECT a.*,u.name AS student_name FROM attempts a JOIN users u ON u.id=a.user_id ORDER BY a.submitted_at DESC').all() : db.prepare('SELECT a.*,u.name AS student_name FROM attempts a JOIN users u ON u.id=a.user_id WHERE a.user_id=? ORDER BY a.submitted_at DESC').all(user.id);
+        }).filter(q => !allowed || allowed.has(q.courseId));
+        const attemptRows = user.role !== 'student' ? db.prepare('SELECT a.*,u.name AS student_name FROM attempts a JOIN users u ON u.id=a.user_id ORDER BY a.submitted_at DESC').all() : db.prepare('SELECT a.*,u.name AS student_name FROM attempts a JOIN users u ON u.id=a.user_id WHERE a.user_id=? ORDER BY a.submitted_at DESC').all(user.id);
         const attempts = attemptRows.map(r => ({ ...JSON.parse(r.result), id: r.id, userId: r.user_id, studentName: r.student_name, answers: JSON.parse(r.answers) }));
         const progress = db.prepare('SELECT * FROM progress WHERE user_id=? ORDER BY updated_at').all(user.id).map(r => ({ materialId: r.material_id, courseId: r.course_id, completed: Boolean(r.completed), updatedAt: r.updated_at }));
         return json(res, 200, { user: publicUser(user), courses, materials, quizzes, attempts, progress, serverTime: new Date().toISOString() });
+      }
+      if (path === '/api/admin/users' && method === 'GET') {
+        requireAdministrator(auth(req));
+        return json(res, 200, { users: listManagedUsers(db) });
+      }
+      if (path === '/api/admin/users' && method === 'POST') {
+        requireAdministrator(auth(req));
+        const account = createManagedUser(db, await readJson(req));
+        return json(res, 201, { user: account });
+      }
+      const manageUser = /^\/api\/admin\/users\/([a-zA-Z0-9_-]{1,100})(\/courses)?$/.exec(path);
+      if (manageUser) {
+        requireAdministrator(auth(req));
+        const userId = manageUser[1];
+        if (!manageUser[2] && method === 'PATCH') {
+          return json(res, 200, { user: updateManagedUser(db, userId, await readJson(req)) });
+        }
+        if (manageUser[2] && method === 'PUT') {
+          const body = await readJson(req);
+          return json(res, 200, setStudentCourses(db, userId, body.courseIds));
+        }
+        fail(405, 'Método no permitido.');
       }
       if (path === '/api/materials' && method === 'POST') {
         auth(req, true);
@@ -249,14 +283,17 @@ export function createApp(options = {}) {
         for (const event of body.events) {
           try { accepted.push(processEvent(event, user)); }
           catch (error) {
-            if (!(error instanceof ApiError)) throw error;
+            if (!(error instanceof ApiError || error instanceof AccountError)) throw error;
             rejected.push({ id: typeof event?.id === 'string' ? event.id : null, reason: error.message, status: error.status });
           }
         }
         return json(res, 200, { accepted, rejected, serverTime: new Date().toISOString() });
       }
       if (path.startsWith('/api/assets/') && (method === 'GET' || method === 'HEAD')) {
-        auth(req);
+        const user = auth(req);
+        const asset = db.prepare("SELECT course_id FROM materials WHERE json_extract(data, '$.assetUrl')=?").get(path);
+        if (!asset) fail(404, 'Archivo no encontrado.');
+        requireCourseAccess(db, user, asset.course_id);
         const filename = path.slice('/api/assets/'.length);
         if (!/^[a-f0-9-]{36}\.(pdf|txt|png|jpg|mp4|webm)$/.test(filename)) fail(404, 'Archivo no encontrado.');
         const fullPath = resolve(uploadDir, filename);
@@ -296,7 +333,7 @@ export function createApp(options = {}) {
       createReadStream(fullPath).pipe(res);
     } catch (error) {
       if (res.headersSent) { res.end(); return; }
-      const status = error instanceof ApiError ? error.status : error instanceof URIError ? 400 : 500;
+      const status = error instanceof ApiError || error instanceof AccountError ? error.status : error instanceof URIError ? 400 : 500;
       if (status === 500) console.error('[AulaRaíz]', error.message);
       json(res, status, { error: status === 500 ? 'No se pudo completar la operación. Los datos pendientes se conservarán para reintentar.' : status === 400 && error instanceof URIError ? 'Dirección inválida.' : error.message });
     }
