@@ -37,17 +37,18 @@ export function saveSession(session) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
-export async function sessionBelongsToServer(session) {
-  // Una recarga sin conexión conserva el trabajo en esta pestaña.
+export async function canResumeOfflineSession() {
+  // Con el servidor accesible, abrir o recargar el aula exige iniciar sesión.
+  // Cuando el servidor no responde, se mantiene la sesión de esta pestaña
+  // para que el estudiante pueda continuar con materiales descargados.
   if (!navigator.onLine) return true;
+
   try {
     const response = await fetch('/api/health', {
       cache: 'no-store',
       signal: AbortSignal.timeout(5000)
     });
-    if (!response.ok) return true;
-    const { serverId } = await response.json();
-    return serverId === session.serverId;
+    return !response.ok;
   } catch {
     return true;
   }
