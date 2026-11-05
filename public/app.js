@@ -1,5 +1,5 @@
 import * as db from './db.js';
-import { adminView, adminEditForm, adminCoursesForm } from './admin.js';
+import { adminView, adminEditForm, adminCoursesForm, adminResetPasswordForm, adminOwnPasswordForm } from './admin.js';
 import { clearSession, readSession, saveSession, canResumeOfflineSession } from './session.js';
 
 const root = document.querySelector('#app');
@@ -158,6 +158,18 @@ document.addEventListener('click',async event=>{
       modal('Editar acceso',adminEditForm({user,esc}));
       state.modal={type:'admin-edit'};
     }
+    if(action==='admin-own-password'){
+      if(state.session?.user.role!=='admin')throw new Error('Se requiere acceso de administrador.');
+      modal('Cambiar mi contraseña',adminOwnPasswordForm());
+      state.modal={type:'admin-own-password'};
+    }
+    if(action==='admin-reset-password'){
+      if(state.session?.user.role!=='admin')throw new Error('Se requiere acceso de administrador.');
+      const user=state.adminUsers.find(item=>item.id===id);
+      if(!user||user.role==='admin')throw new Error('Selecciona un alumno o docente.');
+      modal('Restablecer contraseña',adminResetPasswordForm({user,esc}));
+      state.modal={type:'admin-reset-password'};
+    }
     if(action==='admin-courses'){
       const user=state.adminUsers.find(item=>item.id===id);
       if(!user||user.role!=='student')throw new Error('Selecciona una cuenta de alumno.');
@@ -181,7 +193,7 @@ document.addEventListener('click',async event=>{
   } catch(error){toast(error.message);}
 });
 document.addEventListener('submit',async event=>{
-  const form=event.target,formId=form.getAttribute('id');if(!['login-form','material-form','quiz-editor-form','attempt-form','admin-create-form','admin-edit-form','admin-courses-form'].includes(formId))return;event.preventDefault();formBusy(form,true);
+  const form=event.target,formId=form.getAttribute('id');if(!['login-form','material-form','quiz-editor-form','attempt-form','admin-create-form','admin-edit-form','admin-courses-form','admin-reset-password-form','admin-own-password-form'].includes(formId))return;event.preventDefault();formBusy(form,true);
   try{
     const values=new FormData(form);
     if(formId==='login-form'){
@@ -208,12 +220,41 @@ document.addEventListener('submit',async event=>{
         role:values.get('role'),
         isActive:values.has('isActive')
       };
-      if(values.get('password'))payload.password=values.get('password');
       await api('/admin/users/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)});
       closeModal();
       await loadAdministration();
       render();
       toast('Datos y acceso actualizados en SQLite.');
+    }
+    if(formId==='admin-reset-password-form'){
+      const newPassword=values.get('newPassword');
+      if(newPassword!==values.get('confirmPassword'))throw new Error('Las contraseñas no coinciden.');
+      await api('/admin/users/'+encodeURIComponent(values.get('id')),{
+        method:'PATCH',body:JSON.stringify({password:newPassword})
+      });
+      closeModal();
+      toast('Contraseña restablecida en SQLite. El usuario deberá volver a iniciar sesión.');
+    }
+    if(formId==='admin-own-password-form'){
+      const currentPassword=values.get('currentPassword');
+      const newPassword=values.get('newPassword');
+      if(newPassword!==values.get('confirmPassword'))throw new Error('Las contraseñas no coinciden.');
+      await api('/admin/password',{
+        method:'POST',body:JSON.stringify({currentPassword,newPassword})
+      });
+      closeModal();
+      clearSession();
+      state.session=null;
+      state.data=null;
+      state.downloads=[];
+      state.outbox=[];
+      state.adminUsers=[];
+      state.notice='';
+      state.syncError='';
+      state.view='home';
+      history.replaceState(null,'','#home');
+      login();
+      toast('Contraseña actualizada. Inicia sesión nuevamente con tu nueva clave.');
     }
     if(formId==='admin-courses-form'){
       const id=values.get('id');
