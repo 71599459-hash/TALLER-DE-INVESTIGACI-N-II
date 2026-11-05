@@ -10,7 +10,11 @@
   "scripts": {
     "start": "node server/index.mjs",
     "test": "node --test server/api.test.mjs",
-    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs",
-    "verify": "npm run check && npm test"
+    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs && node --check tests/e2e.mjs",
+    "verify": "npm run check && npm test",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
   }
 }

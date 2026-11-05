@@ -1,6 +1,6 @@
 # Logos de AulaRaíz
 
-Los archivos de esta carpeta permiten usar la marca del proyecto en la aplicación, el informe, las diapositivas y los videos del grupo.
+Esta carpeta contiene los logotipos e iconos de AulaRaíz. Incluye versiones para fondos claros y oscuros, así como formatos vectoriales y de imagen.
 
 | Archivo | Uso |
 | --- | --- |

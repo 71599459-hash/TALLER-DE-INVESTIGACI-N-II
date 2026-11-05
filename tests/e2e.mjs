@@ -5,18 +5,17 @@ import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { createApp } from '../server/index.mjs';
 
-// Run with Node.js 22.13+ and the existing Playwright package. No browser download.
+// Playwright se instala como dependencia de desarrollo.
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const packageDir = process.env.AULARAIZ_PLAYWRIGHT || 'C:/Users/ROBERTIÑO/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
-const { chromium } = await import(pathToFileURL(packageDir));
+const { chromium } = await import('playwright');
 const executablePath = process.env.AULARAIZ_BROWSER || [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
 ].find(existsSync);
-assert.ok(executablePath, 'Se requiere un Edge o Chrome instalado.');
+// Si no se configura un navegador del sistema, se utiliza Chromium de Playwright.
 const evidenceDir = resolve(project, 'tests/evidence');
 await mkdir(evidenceDir, { recursive: true });
 const sourceHashes = {};
@@ -24,9 +23,13 @@ for(const file of ['public/app.js','public/sw.js','public/styles.css'])sourceHas
 const dataDir = await mkdtemp(resolve(tmpdir(), 'aularaiz-e2e-'));
 const app = createApp({ dataDir });
 const server = http.createServer(app.handler);
-await new Promise(resolve => server.listen(4188, '127.0.0.1', resolve));
-const base = 'http://localhost:4188';
-const browser = await chromium.launch({ executablePath, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const base = `http://127.0.0.1:${server.address().port}`;
+const browser = await chromium.launch({
+  ...(executablePath ? { executablePath } : {}),
+  headless: true,
+  args: ['--autoplay-policy=no-user-gesture-required']
+});
 const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
 const page = await context.newPage();
 const failures = [];
@@ -217,7 +220,7 @@ try {
   console.error(error.stack);
   await page.screenshot({ path: resolve(evidenceDir, 'failure.png'), fullPage: true }).catch(()=>{});
 } finally {
-  const report = { generatedAt: new Date().toISOString(), browser: executablePath.split('/').at(-1), viewportDesktop:'1440x1080', viewportMobile:'390x844', passed: failures.length===0, checks, failures, pageErrors, consoleErrors:requestErrors, physicalMobileTest:false, isolatedTemporaryDatabase:true, sourceHashes };
+  const report = { generatedAt: new Date().toISOString(), browser: executablePath ? executablePath.replaceAll('\\', '/').split('/').at(-1) : 'Chromium (Playwright)', viewportDesktop:'1440x1080', viewportMobile:'390x844', passed: failures.length===0, checks, failures, pageErrors, consoleErrors:requestErrors, physicalMobileTest:false, isolatedTemporaryDatabase:true, sourceHashes };
   await writeFile(resolve(evidenceDir,'results.json'), JSON.stringify(report,null,2));
   await writeFile(resolve(evidenceDir,'RESULTADO_E2E.md'), `# Resultado de pruebas de navegador\n\nFecha UTC: ${report.generatedAt}\n\nEstado: ${report.passed?'APROBADO':'CON INCIDENCIAS'}\n\nNavegador local: Edge o Chrome instalado, automatizado mediante Playwright. Datos aislados en una base temporal. Vista escritorio 1440 × 1080; vista móvil emulada 390 × 844.\n\n${checks.map(c=>`- [x] ${c.name}${c.detail?': '+c.detail:''}`).join('\n')}\n\n${failures.map(f=>'- [ ] '+f.message).join('\n')}\n\nErrores JavaScript: ${pageErrors.length}. La emulación móvil no reemplaza una prueba en celular físico. La instalación real y la confianza del certificado HTTPS deben verificarse en el dispositivo antes de la exposición.\n`);
   await context.close(); await browser.close(); await new Promise(resolve=>server.close(resolve)); app.close();
