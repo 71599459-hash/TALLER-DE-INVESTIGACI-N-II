@@ -38,10 +38,24 @@ Los cursos descargados, borradores y avances pendientes se mantienen en IndexedD
 ## Estructura del proyecto
 
 - `public/`: interfaz web, estilos, almacenamiento local y caché PWA.
-- `server/`: API, sesiones, base SQLite y datos iniciales.
+- `server/`: API, sesiones, cuentas administradas, base SQLite y datos iniciales.
 - `tests/`: pruebas de API y navegador.
 - `scripts/`: comandos de ejecución, HTTPS y respaldo en Windows.
 - `.devcontainer/`: entorno de GitHub Codespaces.
+
+## Administración de usuarios y cursos
+
+El sistema incluye un perfil administrador independiente en la interfaz. La información se guarda en la misma base SQLite `data/aularaiz.sqlite`; no necesitas instalar otro gestor de base de datos. El administrador puede crear alumnos y docentes, modificar sus datos, restablecer contraseñas, habilitar o deshabilitar accesos y asignar cursos específicos.
+
+Para preparar tu cuenta administradora la primera vez, desde la carpeta del proyecto ejecuta:
+
+```sh
+npm run admin:init
+```
+
+Escribe tu nombre, correo y una contraseña de al menos 10 caracteres (en la terminal se muestran asteriscos). Después ejecuta `npm start` e inicia sesión con esa cuenta. En el menú lateral se mostrará **Administración**. Los alumnos y docentes existentes se conservan, junto con sus cursos y resultados; los alumnos creados después empiezan sin cursos asignados.
+
+**Seguridad:** no compartas la contraseña del administrador ni publiques el archivo SQLite. El panel no elimina estudiantes ni sus calificaciones: deshabilitar una cuenta bloquea el acceso y revoca las sesiones. Si eliminas un curso asignado, el alumno no podrá consultarlo ni sincronizar nuevos eventos de ese curso; contenido previamente descargado en un dispositivo completamente desconectado no puede revocarse hasta que recupere la conexión. Para operar por internet o con datos reales se requiere HTTPS y revisar la política de usuarios.
 
 ## Uso sin conexión
 

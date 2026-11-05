@@ -89,3 +89,41 @@ La exportación de registros omite hashes de contraseñas y sesiones; no incluye
 `npm test` ejecuta pruebas API aisladas en una carpeta temporal. Comprueba acceso por rol, ausencia de claves de corrección en el estudiante, versiones históricas, reintentos idempotentes, rechazo parcial, conservación tras reiniciar SQLite, subida y rangos de archivos, exportación sin claves y restricciones de rutas estáticas. No modifica los datos de trabajo.
 
 Estas pruebas no sustituyen una prueba física en modo avión, una revisión de accesibilidad ni la validación de instalación en cada sistema operativo. La aplicación académica tampoco incluye administración de cuentas, inscripciones por curso, cuotas por usuario, recuperación de contraseña ni operación de producción.
+
+## Administración integrada (SQLite)
+
+La gestión de usuarios utiliza la misma base `data/aularaiz.sqlite`. Se agregan dos tablas sin modificar las nueve existentes:
+
+- `account_flags`: habilitación y privilegio de administrador.
+- `course_enrollments`: cursos asignados a cada alumno.
+
+Se mantiene el valor `teacher` en `users.role` para la cuenta de administración y `account_flags.is_admin = 1` distingue su privilegio. El servidor devuelve el perfil efectivo `admin` en la API y en la interfaz. Esto permite ampliar la base existente sin reconstruir ni borrar la tabla original de usuarios.
+
+Al instalar esta versión por primera vez, los estudiantes que ya existían conservan el acceso a los cursos actuales. Los nuevos alumnos comienzan sin cursos hasta que el administrador los habilite. Los docentes conservan el acceso al catálogo general para publicar materiales.
+
+### Configurar administrador
+
+Ejecuta `npm run admin:init` en la carpeta raíz; solicita nombre, correo y contraseña. También acepta `AULARAIZ_ADMIN_NAME`, `AULARAIZ_ADMIN_EMAIL` y `AULARAIZ_ADMIN_PASSWORD` como variables de entorno para instalaciones automatizadas. No hay contraseñas administrativas predeterminadas.
+
+### API (solo perfil admin)
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET` | `/api/admin/users` | Listar alumnos, docentes, estados y cursos asignados |
+| `POST` | `/api/admin/users` | Crear estudiante o docente con contraseña |
+| `PATCH` | `/api/admin/users/:id` | Editar nombre, correo, rol, contraseña y habilitación |
+| `PUT` | `/api/admin/users/:id/courses` | Establecer los cursos del alumno |
+
+El servidor comprueba los permisos en cada solicitud: ocultar opciones en la interfaz no reemplaza la autorización. Deshabilitar un usuario revoca sus sesiones, pero conserva sus datos académicos. Las contraseñas nuevas se almacenan con scrypt y sal aleatoria. Una cuenta docente o estudiante no puede administrar otras cuentas.
+
+Para ver las cuentas en DB Browser for SQLite, usa:
+
+```sql
+SELECT u.name, u.email,
+       CASE WHEN COALESCE(f.is_admin,0)=1 THEN 'Administrador'
+            WHEN u.role='teacher' THEN 'Docente' ELSE 'Alumno' END AS perfil,
+       CASE WHEN COALESCE(f.enabled,1)=1 THEN 'Habilitado' ELSE 'Deshabilitado' END AS acceso
+FROM users u
+LEFT JOIN account_flags f ON f.user_id=u.id
+ORDER BY perfil, u.name;
+```
