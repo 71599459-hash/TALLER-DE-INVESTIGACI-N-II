@@ -1,0 +1,16 @@
+{
+  "name": "aularaiz-offline",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aplicación educativa local con acceso sin conexión.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "test": "node --test server/api.test.mjs",
+    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs",
+    "verify": "npm run check && npm test"
+  }
+}

@@ -1,0 +1,24 @@
+# Archivos locales y datos de ejecución
+/data/
+/data-debug/
+/respaldos/
+/logs/
+/certs/
+/descargas/
+.env
+.env.*
+!.env.example
+
+# Dependencias y copias locales
+node_modules/
+.aularaiz-respaldo-*/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.pid
+.DS_Store
+Thumbs.db
