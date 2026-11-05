@@ -15,7 +15,7 @@ Variables opcionales: `PORT`, `AULARAIZ_DATA_DIR`, `HTTPS_CERT` y `HTTPS_KEY`. S
 | Estudiante | alumno@aularaiz.local | Alumno2026! |
 | Docente | docente@aularaiz.local | Docente2026! |
 
-Son cuentas para la exposición académica. El nombre de la estudiante es ficticio. El acceso de usuarios reales y su administración requieren una fase posterior de preparación y validación.
+Son cuentas para la exposición académica. El nombre de la estudiante es ficticio. El módulo de administración ya está disponible; las cuentas de ejemplo no deben usarse con datos reales. Antes de una implementación institucional se requiere una revisión de seguridad y configuración de HTTPS.
 
 ## Contratos
 
@@ -32,6 +32,11 @@ Las rutas protegidas usan `Authorization: Bearer TOKEN`. El inicio de sesión de
 | POST /api/sync | Confirmar intentos y avances del estudiante |
 | GET /api/assets/archivo | Obtener un archivo con autenticación y rangos HTTP |
 | GET /api/export | Exportar registros académicos JSON; exige docente |
+| POST /api/admin/password | Cambiar contraseña propia; exige administrador |
+| GET /api/admin/users | Consultar cuentas; exige administrador |
+| POST /api/admin/users | Registrar alumno o docente; exige administrador |
+| PATCH /api/admin/users/:id | Editar datos, estado o contraseña; exige administrador |
+| PUT /api/admin/users/:id/courses | Asignar cursos al alumno; exige administrador |
 
 Los roles técnicos son `student` y `teacher`. Los errores devuelven JSON con la propiedad `error`. El bootstrap del estudiante omite el índice de respuesta correcta. El docente puede consultar los intentos de todas las cuentas de demostración; cada estudiante recibe únicamente sus intentos.
 
@@ -80,7 +85,7 @@ El avance de un material se resuelve por orden de recepción en el servidor. No 
 
 ## Persistencia y respaldo
 
-Tablas: `users`, `sessions`, `courses`, `materials`, `quizzes`, `quiz_versions`, `attempts`, `progress` y `event_receipts`. La integridad usa claves foráneas y transacciones. SQLite trabaja en modo WAL.
+Tablas: `users`, `sessions`, `courses`, `materials`, `quizzes`, `quiz_versions`, `attempts`, `progress`, `event_receipts`, `account_flags` y `course_enrollments`. La integridad usa claves foráneas y transacciones. SQLite trabaja en modo WAL.
 
 La exportación de registros omite hashes de contraseñas y sesiones; no incluye los archivos binarios. Para un respaldo íntegro, detener el servidor y copiar toda la carpeta `data`, incluidos `uploads` y cualquier archivo SQLite asociado. Conservar el respaldo como información privada.
 
@@ -88,7 +93,7 @@ La exportación de registros omite hashes de contraseñas y sesiones; no incluye
 
 `npm test` ejecuta pruebas API aisladas en una carpeta temporal. Comprueba acceso por rol, ausencia de claves de corrección en el estudiante, versiones históricas, reintentos idempotentes, rechazo parcial, conservación tras reiniciar SQLite, subida y rangos de archivos, exportación sin claves y restricciones de rutas estáticas. No modifica los datos de trabajo.
 
-Estas pruebas no sustituyen una prueba física en modo avión, una revisión de accesibilidad ni la validación de instalación en cada sistema operativo. La aplicación académica tampoco incluye administración de cuentas, inscripciones por curso, cuotas por usuario, recuperación de contraseña ni operación de producción.
+Estas pruebas no sustituyen una prueba física en modo avión, una revisión de accesibilidad ni la validación de instalación en cada sistema operativo. La versión actual permite administrar usuarios, restablecer contraseñas y asignar cursos. Aún no incorpora cuotas de almacenamiento por usuario, recuperación autónoma de contraseña ni operación de producción.
 
 ## Administración integrada (SQLite)
 

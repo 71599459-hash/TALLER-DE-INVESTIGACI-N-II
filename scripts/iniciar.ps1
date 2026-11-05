@@ -12,7 +12,7 @@ if (-not $running) {
     if (-not (Test-Path -LiteralPath $nodePath)) {
         $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
         if ($nodeCommand) { $nodePath = $nodeCommand.Source }
-        else { throw 'No se encontró Node.js. Instala Node.js 24 LTS o usa la copia portátil incluida en tools.' }
+        else { throw 'No se encontró Node.js. Instala Node.js 24 LTS desde nodejs.org y vuelve a ejecutar el iniciador.' }
     }
     $nodeVersion = & $nodePath -p 'process.versions.node'
     $nodeParts = $nodeVersion.Split('.')
