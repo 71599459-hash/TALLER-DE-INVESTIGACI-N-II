@@ -1,4 +1,5 @@
 import * as db from './db.js';
+import { clearSession, readSession, saveSession, sessionBelongsToServer } from './session.js';
 
 const root = document.querySelector('#app');
 const state = { session: null, data: null, downloads: [], outbox: [], view: 'home', courseId: null, connected: navigator.onLine, syncing: false, downloading: null, search: '', modal: null, installPrompt: null, lastSync: null, notice: '', swReady: false, syncError: '' };
@@ -16,7 +17,7 @@ async function api(path, options={}) {
   try { response=await fetch(`/api${path}`, { ...options, headers: { 'Authorization':`Bearer ${state.session?.token || ''}`, ...(options.body ? {'Content-Type':'application/json'} : {}), ...options.headers }, signal: AbortSignal.timeout(15000), cache:'no-store' }); }
   catch { state.connected=false; throw new Error('No se pudo contactar al servidor local. Puedes continuar con tus descargas.'); }
   state.connected=true;
-  if (!response.ok) { const body=await response.json().catch(()=>({})); if(response.status===401) state.notice='Tu sesión necesita renovarse. Tus pendientes siguen guardados; vuelve a ingresar con la misma cuenta.'; throw new Error(body.error || `Error ${response.status}`); }
+  if (!response.ok) { const body=await response.json().catch(()=>({})); if(response.status===401) state.notice='Tu sesión necesita renovarse. Tus pendientes siguen guardados; vuelve a ingresar con la misma cuenta.'; const error=new Error(body.error || `Error ${response.status}`);error.status=response.status;throw error; }
   return options.blob ? response.blob() : response.json();
 }
 async function loadLocal() {
@@ -33,7 +34,7 @@ function complete(materialId) { const events=state.outbox.filter(x=>x.type==='pr
 function percent(courseId) { const materials=courseData(courseId).materials; return materials.length ? Math.round(100*materials.filter(m=>complete(m.id)).length/materials.length) : 0; }
 
 function login() {
-  root.innerHTML=`<div class="login-screen"><section class="login-story"><div class="brand">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></div><div class="login-story-content"><span class="hero-kicker">APRENDE AUN SIN CONEXIÓN</span><h1>Tus clases, incluso sin conexión.</h1><p>Descarga los materiales y continúa trabajando desde tu dispositivo, incluso cuando no tengas señal.</p><div class="login-features"><span>${icon('download')} Descarga tus contenidos</span><span>${icon('book')} Aprende sin conexión</span><span>${icon('sync')} Sincroniza al volver</span></div></div><p class="login-footnote">AulaRaíz · Versión de demostración</p></section><section class="login-card"><span class="eyebrow">BIENVENIDO A TU AULA</span><h2>Ingresa a tu aula.</h2><p class="subtitle">Ingresa a tu espacio de aprendizaje local.</p><form id="login-form"><div class="form-field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="username" required value="alumno@aularaiz.local"></div><div class="form-field"><label for="password">Contraseña</label><input id="password" name="password" type="password" autocomplete="current-password" required ></div><p id="login-error" class="form-error" role="alert"></p><button class="button button-primary" type="submit">Ingresar al aula ${icon('arrow')}</button></form><div class="demo-accounts"><p><strong>Cuentas para la demostración</strong></p><button class="button button-secondary" data-action="demo-student">${icon('book')} Estudiante</button> <button class="button button-secondary" data-action="demo-teacher">${icon('teacher')} Docente</button><p class="small">Datos de ejemplo. El primer ingreso necesita conexión al servidor local.</p></div><div class="login-security">${icon('shield')} Aplicación local · Tus contenidos en tu dispositivo</div></section></div>`;
+  root.innerHTML=`<div class="login-screen"><section class="login-story"><div class="brand">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></div><div class="login-story-content"><span class="hero-kicker">APRENDE AUN SIN CONEXIÓN</span><h1>Tus clases, incluso sin conexión.</h1><p>Descarga los materiales y continúa trabajando desde tu dispositivo, incluso cuando no tengas señal.</p><div class="login-features"><span>${icon('download')} Descarga tus contenidos</span><span>${icon('book')} Aprende sin conexión</span><span>${icon('sync')} Sincroniza al volver</span></div></div><p class="login-footnote">AulaRaíz · Versión de demostración</p></section><section class="login-card"><span class="eyebrow">BIENVENIDO A TU AULA</span><h2>Ingresa a tu aula.</h2><p class="subtitle">Ingresa a tu espacio de aprendizaje local.</p><form id="login-form"><div class="form-field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="username" required placeholder="correo@ejemplo.com"></div><div class="form-field"><label for="password">Contraseña</label><input id="password" name="password" type="password" autocomplete="current-password" required ></div><p id="login-error" class="form-error" role="alert"></p><button class="button button-primary" type="submit">Ingresar al aula ${icon('arrow')}</button></form><div class="demo-accounts"><p><strong>Cuentas para la demostración</strong></p><button class="button button-secondary" data-action="demo-student">${icon('book')} Estudiante</button> <button class="button button-secondary" data-action="demo-teacher">${icon('teacher')} Docente</button><p class="small">Datos de ejemplo. El primer ingreso necesita conexión al servidor local.</p></div><div class="login-security">${icon('shield')} Aplicación local · Tus contenidos en tu dispositivo</div></section></div>`;
 }
 function header(title, subtitle, action='') { return `<div class="page-header"><div><span class="eyebrow">TU ESPACIO DE APRENDIZAJE</span><h1>${title}</h1><p class="subtitle">${subtitle}</p></div>${action}</div>`; }
 function art(course, small=false) {
@@ -126,7 +127,7 @@ document.addEventListener('click',async event=>{
     if(action==='course')navigate('course',id);
     if(action==='menu')document.querySelector('#sidebar')?.classList.toggle('open');
     if(action==='demo-student'||action==='demo-teacher'){const teacher=action==='demo-teacher';document.querySelector('#email').value=teacher?'docente@aularaiz.local':'alumno@aularaiz.local';document.querySelector('#password').value=teacher?'Docente2026!':'Alumno2026!';}
-    if(action==='logout'){const token=state.session?.token;if(navigator.onLine&&token)void fetch('/api/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}}).catch(()=>{});closeModal();localStorage.removeItem('aularaiz-session');state.session=null;state.data=null;state.outbox=[];state.downloads=[];state.notice='';state.syncError='';login();}
+    if(action==='logout'){const token=state.session?.token;if(navigator.onLine&&token)void fetch('/api/logout',{method:'POST',headers:{Authorization:`Bearer ${token}`}}).catch(()=>{});closeModal();clearSession();state.session=null;state.data=null;state.outbox=[];state.downloads=[];state.notice='';state.syncError='';login();}
     if(action==='download')await downloadCourse(id);
     if(action==='sync')await sync(true);
     if(action==='material')await openMaterial(id);
@@ -147,7 +148,7 @@ document.addEventListener('submit',async event=>{
     const values=new FormData(form);
     if(formId==='login-form'){
       const session=await api('/login',{method:'POST',body:JSON.stringify({email:values.get('email'),password:values.get('password')})});state.session=session;
-      await refresh();localStorage.setItem('aularaiz-session',JSON.stringify(session));await loadLocal();state.notice='';state.syncError='';state.view=session.user.role==='teacher'?'teacher':'home';render();void sync();
+      await refresh();saveSession(session);await loadLocal();state.notice='';state.syncError='';state.view=session.user.role==='teacher'?'teacher':'home';location.hash=state.view;render();void sync();
     }
     if(formId==='material-form'){
       const payload=Object.fromEntries(['id','courseId','title','description','type','body'].map(k=>[k,values.get(k)]));if(!payload.id)delete payload.id;
@@ -183,12 +184,56 @@ window.addEventListener('online',()=>void sync());
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();state.installPrompt=event;});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void sync();});
 setInterval(()=>{if(!document.hidden)void sync();},30000);
-async function start(){
-  try{
-    if('serviceWorker'in navigator){await navigator.serviceWorker.register('/sw.js');await navigator.serviceWorker.ready;state.swReady=true;}
-  }catch(error){console.warn('No se pudo preparar el modo sin conexión',error);}
-  try{const saved=localStorage.getItem('aularaiz-session');if(saved){state.session=JSON.parse(saved);state.data=await db.get('kv',key('snapshot'));await loadLocal();try{await refresh();}catch(error){state.connected=false;if(!state.data)throw error;}const route=location.hash.slice(1).split('/');state.view=['home','courses','downloads','sync','guide','teacher','course'].includes(route[0])?route[0]:'home';state.courseId=route[1]?decodeURIComponent(route[1]):null;if(state.view==='teacher'&&state.session.user.role!=='teacher')state.view='home';}}
-  catch(error){toast(error.message);state.session=null;state.data=null;}
-  render();if(state.session)void sync();
+async function restoreSession() {
+  const saved = readSession();
+  if (!saved) return;
+
+  if (!await sessionBelongsToServer(saved)) {
+    clearSession();
+    return;
+  }
+
+  try {
+    state.session = saved;
+    state.data = await db.get('kv', key('snapshot'));
+    await loadLocal();
+
+    try {
+      await refresh();
+    } catch (error) {
+      if (error.status === 401) throw error;
+      state.connected = false;
+      if (!state.data) throw error;
+    }
+
+    const [route, course] = location.hash.slice(1).split('/');
+    state.view = ['home', 'courses', 'downloads', 'sync', 'guide', 'teacher', 'course'].includes(route) ? route : 'home';
+    state.courseId = course ? decodeURIComponent(course) : null;
+    if (state.view === 'teacher' && saved.user.role !== 'teacher') state.view = 'home';
+  } catch (error) {
+    clearSession();
+    state.session = null;
+    state.data = null;
+    state.downloads = [];
+    state.outbox = [];
+    if (error.status === 401) toast('La sesión ha terminado. Vuelve a ingresar.');
+  }
 }
+
+async function start() {
+  try {
+    if ('serviceWorker' in navigator) {
+      await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      state.swReady = true;
+    }
+  } catch (error) {
+    console.warn('No se pudo preparar el modo sin conexión', error);
+  }
+
+  await restoreSession();
+  render();
+  if (state.session) void sync();
+}
+
 void start();
