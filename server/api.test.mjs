@@ -134,4 +134,13 @@ test('API educativa: permisos, persistencia, reintentos y versiones offline', as
     assert.equal((await request('/.env')).response.status, 404);
     assert.equal((await request('/api/no-existe', { token: studentToken })).response.status, 404);
   });
+
+  await t.test('cerrar sesión revoca el token de acceso', async () => {
+    const login = await request('/api/login',{data:{email:'alumno@aularaiz.local',password:'Alumno2026!'}});
+    assert.equal(login.response.status,200);
+    const token=login.body.token;
+    assert.equal((await request('/api/bootstrap',{token})).response.status,200);
+    assert.equal((await request('/api/logout',{token,method:'POST'})).response.status,200);
+    assert.equal((await request('/api/bootstrap',{token})).response.status,401);
+  });
 });
