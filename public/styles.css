@@ -22,12 +22,39 @@
 /* Ajustes de legibilidad y teclado */
 .subtitle{font-size:13px}.small,.stat-label,.course-meta,.page-footer{font-size:11px}.notice,.course-body p{font-size:12px}.course-meta{flex-wrap:wrap}.course-card:focus-within{border-color:#91ac92;box-shadow:0 0 0 3px rgba(145,172,146,.18)}.button:focus-visible,.icon-button:focus-visible,.nav-link:focus-visible,a:focus-visible{outline:3px solid #96bc76;outline-offset:3px}
 
-/* Los títulos informativos no deben mostrar el cursor de edición. */
-h1,h2,h3,h4,h5,h6,.panel-title,.eyebrow,.hero-kicker {
+/* El texto informativo de toda la aplicación utiliza el puntero normal.
+   No se desactiva la selección ni la copia de texto. */
+body {
   cursor: default;
 }
+:where(body *) {
+  cursor: inherit;
+}
 
-/* Mantener el cursor de acción cuando el título pertenece a un enlace o botón. */
-a :is(h1,h2,h3,h4,h5,h6),button :is(h1,h2,h3,h4,h5,h6) {
+/* Elementos que ejecutan acciones o permiten navegar. */
+:is(
+  a[href], button, select, summary, label[for], .option,
+  [role="button"], [role="link"], [role="tab"], [data-action],
+  input[type="checkbox"], input[type="radio"], input[type="file"],
+  input[type="range"], input[type="button"], input[type="submit"],
+  input[type="reset"]
+) {
   cursor: pointer;
+}
+
+/* Solo los campos editables muestran el cursor de escritura. */
+:is(
+  input:not([type]), input[type="text"], input[type="email"],
+  input[type="password"], input[type="search"], input[type="number"],
+  input[type="url"], input[type="tel"], input[type="date"],
+  input[type="datetime-local"], input[type="time"], textarea,
+  [contenteditable="true"], [contenteditable=""], [role="textbox"]
+) {
+  cursor: text;
+}
+:is(input, textarea):disabled {
+  cursor: not-allowed;
+}
+:is(input, textarea)[readonly] {
+  cursor: default;
 }
