@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">AulaRaíz</title>
+  <desc id="desc">Logotipo horizontal de AulaRaíz con una hoja y el nombre de la aplicación en verde bosque sobre fondo transparente.</desc>
+  <g transform="translate(58 57) scale(7.7)" fill="none" stroke="#123c34" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 3C6 1 1 12 8 17c7 5 14-4 12-14ZM6 21 16 9"/>
+  </g>
+  <text x="296" y="203" fill="#123c34" font-family="Segoe UI, Arial, sans-serif" font-size="148" font-weight="700" letter-spacing="-6">AulaRaíz<tspan fill="#a2c56f">.</tspan></text>
+</svg>

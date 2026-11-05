@@ -1,0 +1,12 @@
+﻿{
+    "createdAt":  "2026-11-04T23:03:16.6674984Z",
+    "source":  "D:\\PROYECTOS\\TALLER DE INVESTIGACION II\\AulaRaiz\\data",
+    "kind":  "complete-stopped-server-data-copy",
+    "includes":  [
+                     "SQLite",
+                     "uploads",
+                     "sessions",
+                     "password hashes"
+                 ],
+    "restore":  "Detener servidor. Conservar carpeta data actual con otro nombre. Copiar data del respaldo en su lugar. Iniciar servidor."
+}

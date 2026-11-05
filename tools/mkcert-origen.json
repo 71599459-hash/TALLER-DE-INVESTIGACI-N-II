@@ -1,0 +1,8 @@
+{
+  "name": "mkcert",
+  "version": "v1.4.4",
+  "source": "https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-windows-amd64.exe",
+  "sha256": "d2660b50a9ed59eada480750561c96abc2ed4c9a38c6a24d93e30e0977631398",
+  "officialDigest": null,
+  "downloadedAt": "2026-11-04T22:59:47.8540042Z"
+}

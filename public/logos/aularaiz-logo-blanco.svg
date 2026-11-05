@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">AulaRaíz en blanco</title>
+  <desc id="desc">Logotipo horizontal blanco con acento verde claro para utilizar sobre fondos oscuros. Fondo transparente.</desc>
+  <g transform="translate(58 57) scale(7.7)" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 3C6 1 1 12 8 17c7 5 14-4 12-14ZM6 21 16 9"/>
+  </g>
+  <text x="296" y="203" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="148" font-weight="700" letter-spacing="-6">AulaRaíz<tspan fill="#cbe9a1">.</tspan></text>
+</svg>

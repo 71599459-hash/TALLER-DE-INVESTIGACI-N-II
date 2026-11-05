@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-11-04T23:02:57.485Z",
+  "browser": "msedge.exe",
+  "viewportDesktop": "1440x1080",
+  "viewportMobile": "390x844",
+  "passed": true,
+  "checks": [
+    {
+      "name": "Sin desbordamiento acceso escritorio",
+      "passed": true,
+      "detail": "1440px"
+    },
+    {
+      "name": "Ingreso y descarga de unidad",
+      "passed": true,
+      "detail": "Ciencias guardada en IndexedDB y Service Worker activo"
+    },
+    {
+      "name": "Lectura sin conexión tras recarga",
+      "passed": true,
+      "detail": "Lectura y marcado de avance desde almacenamiento local"
+    },
+    {
+      "name": "Borrador de cuestionario persiste",
+      "passed": true,
+      "detail": "Selección recuperada tras recarga sin conexión"
+    },
+    {
+      "name": "Cola offline conservada",
+      "passed": true,
+      "detail": "Intento y avance siguen pendientes con identificadores estables tras recarga"
+    },
+    {
+      "name": "Sincronización y calificación reales",
+      "passed": true,
+      "detail": "Un intento confirmado 3/3 (100%); reintento idempotente sin duplicar"
+    },
+    {
+      "name": "Aislamiento de cuenta y resultados docentes",
+      "passed": true,
+      "detail": "Docente no hereda descargas ni cola; ve el resultado del alumno con su nombre mediante permiso de docente"
+    },
+    {
+      "name": "Publicación docente de lectura",
+      "passed": true,
+      "detail": "Material persistido desde formulario y visible en tabla del servidor"
+    },
+    {
+      "name": "Publicación de video real",
+      "passed": true,
+      "detail": "6658 bytes WebM cargados desde el formulario docente"
+    },
+    {
+      "name": "Publicación docente de cuestionario",
+      "passed": true,
+      "detail": "Pregunta con tres opciones y clave de respuesta guardada desde la interfaz"
+    },
+    {
+      "name": "Sin desbordamiento docente móvil",
+      "passed": true,
+      "detail": "390px"
+    },
+    {
+      "name": "Sin desbordamiento acceso móvil",
+      "passed": true,
+      "detail": "390px"
+    },
+    {
+      "name": "Sin desbordamiento inicio móvil",
+      "passed": true,
+      "detail": "390px"
+    },
+    {
+      "name": "Reproducción de video sin conexión",
+      "passed": true,
+      "detail": "Blob local 320×180, reproducción avanza 0.32s"
+    },
+    {
+      "name": "Sin desbordamiento video móvil",
+      "passed": true,
+      "detail": "390px"
+    },
+    {
+      "name": "Actualización automática de materiales",
+      "passed": true,
+      "detail": "Lectura y video nuevos disponibles en la unidad tras actualización y desconexión"
+    },
+    {
+      "name": "Sin excepciones JavaScript de navegador",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "failures": [],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "physicalMobileTest": false,
+  "isolatedTemporaryDatabase": true,
+  "sourceHashes": {
+    "public/app.js": "1f739263aaa4604587f64e473abdd18a5f6df33a8d95ed07812a2d835941f69c",
+    "public/sw.js": "bf5c47117ab827153944077bdf88e8b2dfe2a618d57e9f528c003e9021610a4f",
+    "public/styles.css": "430ae3cd68c03a75b9dec54c4f617dd6e6edb06bbde4d28d7fb296f8f4d6f6bc"
+  }
+}
