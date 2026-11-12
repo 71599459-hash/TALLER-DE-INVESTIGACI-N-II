@@ -1,0 +1,29 @@
+name: Formato temporal de código
+on:
+  push:
+    branches:
+      - refactor/herramientas-node-y-legibilidad-20261112
+permissions:
+  contents: write
+jobs:
+  formatear:
+    if: "!contains(github.event.head_commit.message, '[formato aplicado]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/herramientas-node-y-legibilidad-20261112
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npx --yes prettier@3.6.2 --write "public/**/*.{js,css}" "server/**/*.mjs" "scripts/**/*.mjs" "tests/**/*.mjs"
+      - run: npm run verify
+      - name: Guardar formato en rama de trabajo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public server scripts tests
+          if ! git diff --cached --quiet; then
+            git commit -m "style: ordenar código y estilos [formato aplicado]"
+            git push origin HEAD:refactor/herramientas-node-y-legibilidad-20261112
+          fi
