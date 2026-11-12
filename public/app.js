@@ -1,4 +1,5 @@
 import * as db from './db.js';
+import { selectDemoUser } from './login-demo.js';
 import {
   adminView,
   adminEditForm,
@@ -169,7 +170,7 @@ function percent(courseId) {
 }
 
 function login() {
-  root.innerHTML = `<div class="login-screen"><section class="login-story"><div class="brand">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></div><div class="login-story-content"><span class="hero-kicker">APRENDE AUN SIN CONEXIÓN</span><h1>Tus clases, incluso sin conexión.</h1><p>Descarga los materiales y continúa trabajando desde tu dispositivo, incluso cuando no tengas señal.</p><div class="login-features"><span>${icon('download')} Descarga tus contenidos</span><span>${icon('book')} Aprende sin conexión</span><span>${icon('sync')} Sincroniza al volver</span></div></div><p class="login-footnote">AulaRaíz · Versión de demostración</p></section><section class="login-card"><span class="eyebrow">BIENVENIDO A TU AULA</span><h2>Ingresa a tu aula.</h2><p class="subtitle">Ingresa a tu espacio de aprendizaje local.</p><form id="login-form"><div class="form-field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="username" required placeholder="correo@ejemplo.com"></div><div class="form-field"><label for="password">Contraseña</label><input id="password" name="password" type="password" autocomplete="current-password" required ></div><p id="login-error" class="form-error" role="alert"></p><button class="button button-primary" type="submit">Ingresar al aula ${icon('arrow')}</button></form><div class="demo-accounts"><p><strong>Cuentas para la demostración</strong></p><button class="button button-secondary" data-action="demo-student">${icon('book')} Estudiante</button> <button class="button button-secondary" data-action="demo-teacher">${icon('teacher')} Docente</button><p class="small">Datos de ejemplo. El primer ingreso necesita conexión al servidor local.</p></div><div class="login-security">${icon('shield')} Aplicación local · Tus contenidos en tu dispositivo</div></section></div>`;
+  root.innerHTML = `<div class="login-screen"><section class="login-story"><div class="brand">${icon('leaf')}<span>AulaRaíz<span class="brand-dot">.</span></span></div><div class="login-story-content"><span class="hero-kicker">APRENDE AUN SIN CONEXIÓN</span><h1>Tus clases, incluso sin conexión.</h1><p>Descarga los materiales y continúa trabajando desde tu dispositivo, incluso cuando no tengas señal.</p><div class="login-features"><span>${icon('download')} Descarga tus contenidos</span><span>${icon('book')} Aprende sin conexión</span><span>${icon('sync')} Sincroniza al volver</span></div></div><p class="login-footnote">AulaRaíz · Versión de demostración</p></section><section class="login-card"><span class="eyebrow">BIENVENIDO A TU AULA</span><h2>Ingresa a tu aula.</h2><p class="subtitle">Ingresa a tu espacio de aprendizaje local.</p><form id="login-form" autocomplete="off"><div class="form-field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="off" required placeholder="correo@ejemplo.com"></div><div class="form-field"><label for="password">Contraseña</label><input id="password" name="password" type="password" autocomplete="off" required ></div><p id="login-error" class="form-error" role="alert"></p><button class="button button-primary" type="submit">Ingresar al aula ${icon('arrow')}</button></form><div class="demo-accounts"><p><strong>Cuentas para la demostración</strong></p><button class="button button-secondary" type="button" data-action="demo-student" data-demo-role="student" aria-pressed="false">${icon('book')} Cuenta alumno</button> <button class="button button-secondary" type="button" data-action="demo-teacher" data-demo-role="teacher" aria-pressed="false">${icon('teacher')} Cuenta docente</button><p class="small">Datos de ejemplo. El primer ingreso necesita conexión al servidor local.</p></div><div class="login-security">${icon('shield')} Aplicación local · Tus contenidos en tu dispositivo</div></section></div>`;
 }
 function header(title, subtitle, action = '') {
   return `<div class="page-header"><div><span class="eyebrow">TU ESPACIO DE APRENDIZAJE</span><h1>${title}</h1><p class="subtitle">${subtitle}</p></div>${action}</div>`;
@@ -513,11 +514,14 @@ document.addEventListener('click', async (event) => {
       state.modal = { type: 'admin-courses' };
     }
     if (action === 'demo-student' || action === 'demo-teacher') {
-      const teacher = action === 'demo-teacher';
-      document.querySelector('#email').value = teacher
-        ? 'docente@aularaiz.local'
-        : 'alumno@aularaiz.local';
-      document.querySelector('#password').value = teacher ? 'Docente2026!' : 'Alumno2026!';
+      const role = action === 'demo-teacher' ? 'teacher' : 'student';
+      if (selectDemoUser(document.querySelector('#login-form'), role)) {
+        document.querySelectorAll('[data-demo-role]').forEach((option) => {
+          option.setAttribute('aria-pressed', String(option.dataset.demoRole === role));
+        });
+        const error = document.querySelector('#login-error');
+        if (error) error.textContent = '';
+      }
     }
     if (action === 'logout') {
       const token = state.session?.token;

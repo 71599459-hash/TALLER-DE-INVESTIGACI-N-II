@@ -9,8 +9,8 @@
   },
   "scripts": {
     "start": "node server/index.mjs",
-    "test": "node --test server/api.test.mjs server/admin.test.mjs tests/session.test.mjs tests/scripts.test.mjs",
-    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs && node --check tests/e2e.mjs && node --check tests/session.test.mjs && node --check public/admin.js && node --check server/access.mjs && node --check server/create-admin.mjs && node --check server/admin.test.mjs && node --check scripts/lib.mjs && node --check scripts/iniciar.mjs && node --check scripts/detener.mjs && node --check scripts/respaldar.mjs && node --check scripts/https.mjs && node --check tests/scripts.test.mjs",
+    "test": "node --test server/api.test.mjs server/admin.test.mjs tests/session.test.mjs tests/scripts.test.mjs tests/login.test.mjs",
+    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs && node --check tests/e2e.mjs && node --check tests/session.test.mjs && node --check public/admin.js && node --check server/access.mjs && node --check server/create-admin.mjs && node --check server/admin.test.mjs && node --check scripts/lib.mjs && node --check scripts/iniciar.mjs && node --check scripts/detener.mjs && node --check scripts/respaldar.mjs && node --check scripts/https.mjs && node --check tests/scripts.test.mjs && node --check public/login-demo.js && node --check tests/login.test.mjs",
     "verify": "npm run check && npm test",
     "test:e2e": "node tests/e2e.mjs",
     "admin:init": "node server/create-admin.mjs",

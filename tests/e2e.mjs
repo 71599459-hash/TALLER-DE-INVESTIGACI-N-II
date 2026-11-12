@@ -101,6 +101,18 @@ async function noOverflow(label) {
 try {
   await page.goto(base);
   await page.locator('#login-form').waitFor();
+  assert.equal(await page.locator('#email').inputValue(), '');
+  await page.locator('[data-action="demo-teacher"]').click();
+  assert.equal(await page.locator('#email').inputValue(), 'docente@aularaiz.local');
+  assert.equal(await page.locator('#password').inputValue(), 'Docente2026!');
+  assert.equal(await page.locator('[data-action="demo-teacher"]').getAttribute('aria-pressed'), 'true');
+  await page.locator('[data-action="demo-student"]').click();
+  assert.equal(await page.locator('#email').inputValue(), 'alumno@aularaiz.local');
+  assert.equal(await page.locator('#password').inputValue(), 'Alumno2026!');
+  assert.equal(await page.locator('[data-action="demo-teacher"]').getAttribute('aria-pressed'), 'false');
+  await page.reload();
+  await page.locator('#login-form').waitFor();
+  assert.equal(await page.locator('#email').inputValue(), '');
   await page.screenshot({ path: resolve(evidenceDir, '01-login-desktop.png'), fullPage: true });
   await noOverflow('acceso escritorio');
   await login();
