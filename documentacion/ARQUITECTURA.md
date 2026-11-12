@@ -48,6 +48,8 @@ Un cambio de permisos no puede retirar material que ya está almacenado en un di
 - `npm run admin:init`: crea la cuenta administrativa local inicial sin incluir contraseñas en el repositorio.
 - `npm run verify`: ejecuta verificaciones y pruebas con bases temporales.
 - `npm run test:e2e`: ejecuta pruebas de navegador cuando Playwright y Chromium están instalados.
+- `npm run iniciar`, `npm run detener` y `npm run respaldar`: gestionan el proceso local y los respaldos mediante Node.js.
+- `npm run https:configurar -- --confiar` y `npm run https:iniciar`: habilitan HTTPS local mediante mkcert, con autorización explícita.
 
 Cada equipo usa su propia carpeta `data/`, excluida de Git. Compartir el repositorio **no** sincroniza automáticamente los datos privados entre computadoras. Para un entorno común se necesitaría un servidor compartido con red, HTTPS, respaldo y controles de acceso adecuados.
 

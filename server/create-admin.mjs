@@ -26,7 +26,10 @@ function maskedPassword(question) {
       if (key === '\r' || key === '\n') return finish();
       if (key === '\u0003') return finish(new Error('Operación cancelada.'));
       if (key === '\u007f' || key === '\b') {
-        if (input.length) { input = input.slice(0, -1); stdout.write('\b \b'); }
+        if (input.length) {
+          input = input.slice(0, -1);
+          stdout.write('\b \b');
+        }
       } else if (key.length === 1 && key >= ' ' && key !== '\u007f') {
         input += key;
         stdout.write('*');
@@ -42,7 +45,8 @@ async function run() {
   let password = process.env.AULARAIZ_ADMIN_PASSWORD;
 
   if (!name || !email) {
-    if (!stdin.isTTY) throw new Error('Define AULARAIZ_ADMIN_NAME, AULARAIZ_ADMIN_EMAIL y AULARAIZ_ADMIN_PASSWORD.');
+    if (!stdin.isTTY)
+      throw new Error('Define AULARAIZ_ADMIN_NAME, AULARAIZ_ADMIN_EMAIL y AULARAIZ_ADMIN_PASSWORD.');
     const prompt = createInterface({ input: stdin, output: stdout });
     try {
       name ||= await prompt.question('Nombre del administrador: ');
@@ -68,7 +72,7 @@ async function run() {
   }
 }
 
-run().catch(error => {
+run().catch((error) => {
   console.error(error.message);
   process.exitCode = 1;
 });

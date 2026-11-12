@@ -43,7 +43,7 @@ Antes de comenzar otra tarea, actualiza tu copia con `git pull --ff-only origin 
 
 Estos archivos no deben subirse al repositorio. `git pull` y `git push` sincronizan **código**, no las bases de datos de cada integrante. Para compartir datos de prueba, utiliza una copia anonimizada y un canal privado.
 
-Para crear un respaldo consistente en Windows, detén primero el servidor y ejecuta `powershell -File scripts/respaldar.ps1`. El respaldo incluye credenciales protegidas y no debe publicarse.
+Para crear un respaldo consistente, detén primero el servidor y ejecuta `npm run respaldar` desde la raíz del proyecto. El respaldo incluye credenciales protegidas y no debe publicarse.
 
 ## Pruebas y revisión
 

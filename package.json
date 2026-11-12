@@ -9,13 +9,21 @@
   },
   "scripts": {
     "start": "node server/index.mjs",
-    "test": "node --test server/api.test.mjs server/admin.test.mjs tests/session.test.mjs",
-    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs && node --check tests/e2e.mjs && node --check tests/session.test.mjs && node --check public/admin.js && node --check server/access.mjs && node --check server/create-admin.mjs && node --check server/admin.test.mjs",
+    "test": "node --test server/api.test.mjs server/admin.test.mjs tests/session.test.mjs tests/scripts.test.mjs",
+    "check": "node --check public/app.js && node --check public/db.js && node --check public/sw.js && node --check server/index.mjs && node --check tests/e2e.mjs && node --check tests/session.test.mjs && node --check public/admin.js && node --check server/access.mjs && node --check server/create-admin.mjs && node --check server/admin.test.mjs && node --check scripts/lib.mjs && node --check scripts/iniciar.mjs && node --check scripts/detener.mjs && node --check scripts/respaldar.mjs && node --check scripts/https.mjs && node --check tests/scripts.test.mjs",
     "verify": "npm run check && npm test",
     "test:e2e": "node tests/e2e.mjs",
-    "admin:init": "node server/create-admin.mjs"
+    "admin:init": "node server/create-admin.mjs",
+    "iniciar": "node scripts/iniciar.mjs",
+    "detener": "node scripts/detener.mjs",
+    "respaldar": "node scripts/respaldar.mjs",
+    "https:configurar": "node scripts/https.mjs configurar",
+    "https:iniciar": "node scripts/https.mjs iniciar",
+    "format": "prettier --write \"public/**/*.{js,css}\" \"server/**/*.mjs\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\"",
+    "format:check": "prettier --check \"public/**/*.{js,css}\" \"server/**/*.mjs\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\""
   },
   "devDependencies": {
-    "playwright": "^1.56.0"
+    "playwright": "^1.56.0",
+    "prettier": "3.6.2"
   }
 }

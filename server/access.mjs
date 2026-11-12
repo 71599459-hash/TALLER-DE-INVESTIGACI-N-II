@@ -8,7 +8,9 @@ export class AccountError extends Error {
   }
 }
 
-const reject = (status, message) => { throw new AccountError(status, message); };
+const reject = (status, message) => {
+  throw new AccountError(status, message);
+};
 
 function requiredText(value, label, maximum = 160) {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > maximum) {
@@ -39,7 +41,9 @@ const accountFields = `u.*, COALESCE(f.enabled, 1) AS access_enabled, COALESCE(f
 const joins = `FROM users u LEFT JOIN account_flags f ON f.user_id = u.id`;
 
 export function migrateAccounts(db) {
-  const existed = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='course_enrollments'").get());
+  const existed = Boolean(
+    db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='course_enrollments'").get()
+  );
   db.exec(`
     CREATE TABLE IF NOT EXISTS account_flags (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -56,7 +60,9 @@ export function migrateAccounts(db) {
   `);
   // Primera actualización: conservar los cursos de los alumnos existentes.
   if (!existed) {
-    db.exec("INSERT OR IGNORE INTO course_enrollments(user_id, course_id) SELECT u.id, c.id FROM users u CROSS JOIN courses c WHERE u.role='student'");
+    db.exec(
+      "INSERT OR IGNORE INTO course_enrollments(user_id, course_id) SELECT u.id, c.id FROM users u CROSS JOIN courses c WHERE u.role='student'"
+    );
   }
 }
 
@@ -65,7 +71,11 @@ export function accountByEmail(db, email) {
 }
 
 export function accountByTokenHash(db, hash, now) {
-  return db.prepare(`SELECT ${accountFields} ${joins} JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?`).get(hash, now);
+  return db
+    .prepare(
+      `SELECT ${accountFields} ${joins} JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?`
+    )
+    .get(hash, now);
 }
 
 export function publicAccount(user) {
@@ -79,16 +89,22 @@ export function publicAccount(user) {
 }
 
 export function assignedCourses(db, userId) {
-  return db.prepare('SELECT course_id FROM course_enrollments WHERE user_id = ? ORDER BY course_id').all(userId).map(row => row.course_id);
+  return db
+    .prepare('SELECT course_id FROM course_enrollments WHERE user_id = ? ORDER BY course_id')
+    .all(userId)
+    .map((row) => row.course_id);
 }
 
 export function hasCourseAccess(db, user, courseId) {
   if (user.role !== 'student') return true;
-  return Boolean(db.prepare('SELECT 1 FROM course_enrollments WHERE user_id=? AND course_id=?').get(user.id, courseId));
+  return Boolean(
+    db.prepare('SELECT 1 FROM course_enrollments WHERE user_id=? AND course_id=?').get(user.id, courseId)
+  );
 }
 
 export function requireCourseAccess(db, user, courseId) {
-  if (!hasCourseAccess(db, user, courseId)) reject(403, 'No tienes habilitado este curso. Consulta al administrador.');
+  if (!hasCourseAccess(db, user, courseId))
+    reject(403, 'No tienes habilitado este curso. Consulta al administrador.');
 }
 
 export function requireAdministrator(user) {
@@ -96,8 +112,10 @@ export function requireAdministrator(user) {
 }
 
 export function listManagedUsers(db) {
-  const users = db.prepare(`SELECT ${accountFields} ${joins} ORDER BY u.name COLLATE NOCASE, u.email`).all();
-  return users.map(user => ({
+  const users = db
+    .prepare(`SELECT ${accountFields} ${joins} ORDER BY u.name COLLATE NOCASE, u.email`)
+    .all();
+  return users.map((user) => ({
     ...publicAccount(user),
     courseIds: user.role === 'student' ? assignedCourses(db, user.id) : []
   }));
@@ -117,7 +135,8 @@ function uniqueEmailError(error) {
 }
 
 export function createManagedUser(db, body) {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) reject(400, 'Los datos del usuario no son válidos.');
+  if (!body || typeof body !== 'object' || Array.isArray(body))
+    reject(400, 'Los datos del usuario no son válidos.');
   const name = requiredText(body.name, 'Nombre');
   const email = validEmail(body.email);
   const password = validPassword(body.password);
@@ -126,7 +145,13 @@ export function createManagedUser(db, body) {
 
   try {
     db.exec('BEGIN IMMEDIATE');
-    db.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES (?,?,?,?,?)').run(id, name, email, role, passwordHash(password));
+    db.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES (?,?,?,?,?)').run(
+      id,
+      name,
+      email,
+      role,
+      passwordHash(password)
+    );
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
@@ -138,30 +163,51 @@ export function createManagedUser(db, body) {
 export function updateManagedUser(db, id, changes) {
   const user = existingAccount(db, id);
   if (user.access_admin) reject(403, 'La cuenta administradora se protege de cambios desde este panel.');
-  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) reject(400, 'Los cambios no son válidos.');
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes))
+    reject(400, 'Los cambios no son válidos.');
 
   const allowed = new Set(['name', 'email', 'role', 'isActive', 'password']);
-  if (!Object.keys(changes).length || Object.keys(changes).some(k => !allowed.has(k))) reject(400, 'No se recibieron campos válidos para actualizar.');
+  if (!Object.keys(changes).length || Object.keys(changes).some((k) => !allowed.has(k)))
+    reject(400, 'No se recibieron campos válidos para actualizar.');
 
-  const fields = [], values = [];
-  if (Object.hasOwn(changes, 'name')) { fields.push('name=?'); values.push(requiredText(changes.name, 'Nombre')); }
-  if (Object.hasOwn(changes, 'email')) { fields.push('email=?'); values.push(validEmail(changes.email)); }
-  if (Object.hasOwn(changes, 'role')) { fields.push('role=?'); values.push(validRole(changes.role)); }
+  const fields = [],
+    values = [];
+  if (Object.hasOwn(changes, 'name')) {
+    fields.push('name=?');
+    values.push(requiredText(changes.name, 'Nombre'));
+  }
+  if (Object.hasOwn(changes, 'email')) {
+    fields.push('email=?');
+    values.push(validEmail(changes.email));
+  }
+  if (Object.hasOwn(changes, 'role')) {
+    fields.push('role=?');
+    values.push(validRole(changes.role));
+  }
   const passwordChanged = typeof changes.password === 'string' && changes.password.length > 0;
-  if (Object.hasOwn(changes, 'password') && typeof changes.password !== 'string') reject(400, 'La contraseña no es válida.');
-  if (passwordChanged) { fields.push('password_hash=?'); values.push(passwordHash(validPassword(changes.password))); }
-  if (Object.hasOwn(changes, 'isActive') && typeof changes.isActive !== 'boolean') reject(400, 'El estado debe ser activo o inactivo.');
-  const accessChanged = Object.hasOwn(changes, 'isActive') && user.access_enabled !== Number(changes.isActive);
+  if (Object.hasOwn(changes, 'password') && typeof changes.password !== 'string')
+    reject(400, 'La contraseña no es válida.');
+  if (passwordChanged) {
+    fields.push('password_hash=?');
+    values.push(passwordHash(validPassword(changes.password)));
+  }
+  if (Object.hasOwn(changes, 'isActive') && typeof changes.isActive !== 'boolean')
+    reject(400, 'El estado debe ser activo o inactivo.');
+  const accessChanged =
+    Object.hasOwn(changes, 'isActive') && user.access_enabled !== Number(changes.isActive);
   const roleChanged = Object.hasOwn(changes, 'role') && user.role !== changes.role;
 
   try {
     db.exec('BEGIN IMMEDIATE');
     if (fields.length) db.prepare(`UPDATE users SET ${fields.join(',')} WHERE id=?`).run(...values, id);
     if (Object.hasOwn(changes, 'isActive')) {
-      db.prepare('INSERT INTO account_flags(user_id,enabled,is_admin) VALUES (?,?,0) ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled').run(id, changes.isActive ? 1 : 0);
+      db.prepare(
+        'INSERT INTO account_flags(user_id,enabled,is_admin) VALUES (?,?,0) ON CONFLICT(user_id) DO UPDATE SET enabled=excluded.enabled'
+      ).run(id, changes.isActive ? 1 : 0);
     }
     if (roleChanged) db.prepare('DELETE FROM course_enrollments WHERE user_id=?').run(id);
-    if (passwordChanged || roleChanged || accessChanged) db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);
+    if (passwordChanged || roleChanged || accessChanged)
+      db.prepare('DELETE FROM sessions WHERE user_id=?').run(id);
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
@@ -169,19 +215,28 @@ export function updateManagedUser(db, id, changes) {
   }
 
   const updated = existingAccount(db, id);
-  return { ...publicAccount(updated), courseIds: updated.role === 'student' ? assignedCourses(db, id) : [] };
+  return {
+    ...publicAccount(updated),
+    courseIds: updated.role === 'student' ? assignedCourses(db, id) : []
+  };
 }
 
 export function setStudentCourses(db, id, courseIds) {
   const user = existingAccount(db, id);
-  if (user.role !== 'student' || user.access_admin) reject(400, 'Solo se asignan cursos a cuentas de alumno.');
-  if (!Array.isArray(courseIds) || courseIds.length > 100 ||
-      courseIds.some(x => typeof x !== 'string') || new Set(courseIds).size !== courseIds.length) {
+  if (user.role !== 'student' || user.access_admin)
+    reject(400, 'Solo se asignan cursos a cuentas de alumno.');
+  if (
+    !Array.isArray(courseIds) ||
+    courseIds.length > 100 ||
+    courseIds.some((x) => typeof x !== 'string') ||
+    new Set(courseIds).size !== courseIds.length
+  ) {
     reject(400, 'Selecciona una lista de cursos válida, sin duplicados.');
   }
 
   for (const courseId of courseIds) {
-    if (!db.prepare('SELECT id FROM courses WHERE id=?').get(courseId)) reject(400, 'Se indicó un curso que no existe.');
+    if (!db.prepare('SELECT id FROM courses WHERE id=?').get(courseId))
+      reject(400, 'Se indicó un curso que no existe.');
   }
 
   db.exec('BEGIN IMMEDIATE');
@@ -217,8 +272,7 @@ export function changeAdministratorPassword(db, user, { currentPassword, newPass
 
   db.exec('BEGIN IMMEDIATE');
   try {
-    db.prepare('UPDATE users SET password_hash=? WHERE id=?')
-      .run(passwordHash(nextPassword), user.id);
+    db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(passwordHash(nextPassword), user.id);
     // Invalidar todos los accesos anteriores, incluso el de esta pestaña.
     db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);
     db.exec('COMMIT');
@@ -232,12 +286,19 @@ export function provisionAdministrator(db, { name, email, password }) {
   const validatedName = requiredText(name, 'Nombre');
   const validatedEmail = validEmail(email);
   const validatedPassword = validPassword(password);
-  if (accountByEmail(db, validatedEmail)) reject(409, 'El correo ya pertenece a un usuario. Utiliza otro para el administrador.');
+  if (accountByEmail(db, validatedEmail))
+    reject(409, 'El correo ya pertenece a un usuario. Utiliza otro para el administrador.');
 
   const id = randomUUID();
   try {
     db.exec('BEGIN IMMEDIATE');
-    db.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES (?,?,?,?,?)').run(id, validatedName, validatedEmail, 'teacher', passwordHash(validatedPassword));
+    db.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES (?,?,?,?,?)').run(
+      id,
+      validatedName,
+      validatedEmail,
+      'teacher',
+      passwordHash(validatedPassword)
+    );
     db.prepare('INSERT INTO account_flags(user_id,enabled,is_admin) VALUES (?,1,1)').run(id);
     db.exec('COMMIT');
   } catch (error) {
