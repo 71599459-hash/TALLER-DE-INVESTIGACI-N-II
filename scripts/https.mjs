@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { cp, mkdir, readFile } from 'node:fs/promises';
+import { cp, mkdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { homedir, networkInterfaces } from 'node:os';
 import { isIP } from 'node:net';

@@ -27,7 +27,7 @@ Se necesita Node.js 22.13 o posterior.
 npm start
 ```
 
-Abre `http://localhost:4173` en Chrome o Edge. El servidor crea cursos y usuarios de demostración en el primer inicio. Consulta las cuentas de prueba en [server/README.md](server/README.md).
+Abre `http://localhost:4173` en Chrome o Edge. Para iniciar el servidor en segundo plano ejecuta `npm run iniciar` y para detener esa instancia ejecuta `npm run detener`. Si lo inicias con `npm start`, deténlo con **Ctrl+C**. El servidor crea cursos y usuarios de demostración en el primer inicio. Consulta las cuentas de prueba en [server/README.md](server/README.md).
 
 ## Inicio de sesión
 
@@ -40,7 +40,7 @@ Los cursos descargados, borradores y avances pendientes se mantienen en IndexedD
 - `public/`: interfaz web, estilos, almacenamiento local y caché PWA.
 - `server/`: API, sesiones, cuentas administradas, base SQLite y datos iniciales.
 - `tests/`: pruebas de API y navegador.
-- `scripts/`: comandos de ejecución, HTTPS y respaldo en Windows.
+- `scripts/`: utilidades Node.js para iniciar, detener, respaldar y configurar HTTPS local.
 - `.devcontainer/`: entorno de GitHub Codespaces.
 - `documentacion/`: arquitectura técnica y notas de operación.
 
@@ -73,6 +73,21 @@ Las contraseñas **no se escriben en texto plano** en la columna `users.password
 ## Uso sin conexión
 
 Inicia sesión con acceso al servidor y descarga el curso que quieras estudiar. Las lecturas y actividades descargadas quedan disponibles en el dispositivo. Los cuestionarios y avances pendientes se envían cuando la aplicación abierta recupera acceso al servidor local. Tener internet no basta si la computadora que ejecuta Node.js está apagada o desconectada.
+
+## Comandos de mantenimiento
+
+Las operaciones de inicio, detención, respaldo y HTTPS están programadas en Node.js y no requieren PowerShell:
+
+| Comando | Acción |
+| --- | --- |
+| `npm start` | Inicia la aplicación en primer plano (HTTP, puerto 4173). |
+| `npm run iniciar` | Inicia en segundo plano, abre el navegador y guarda registros en `logs/`. |
+| `npm run detener` | Detiene únicamente la instancia en segundo plano identificada por AulaRaíz. |
+| `npm run respaldar` | Con el servidor detenido, crea una copia completa de `data/` en `respaldos/`. |
+| `npm run https:configurar -- --confiar` | Instala una autoridad local de pruebas y genera certificados para la PC y sus direcciones IPv4. |
+| `npm run https:iniciar` | Inicia la aplicación con HTTPS en el puerto 4174. |
+
+Para un respaldo en otro directorio se puede usar `npm run respaldar -- "D:\\MisRespaldos"`. La instalación de la autoridad local con `--confiar` requiere autorización explícita y puede solicitar permisos del sistema. Consulta [scripts/README.md](scripts/README.md).
 
 ## Pruebas
 

@@ -26,3 +26,6 @@ Thumbs.db
 # Resultados de pruebas de navegador (se generan al ejecutar la prueba)
 /tests/evidence/*
 !/tests/evidence/.gitkeep
+
+# Certificado público instalado y archivos generados para conexión HTTPS
+/instalacion/

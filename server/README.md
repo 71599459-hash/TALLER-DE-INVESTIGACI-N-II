@@ -6,7 +6,7 @@ El servidor usa módulos incluidos en Node.js y SQLite integrado. No necesita in
 
 Desde la raíz del proyecto, junto a `package.json`, ejecutar `npm start` o `node server/index.mjs`. La aplicación se sirve en `http://localhost:4173` y la base de datos se crea en `data/aularaiz.sqlite`. El servidor escucha en todas las interfaces para admitir equipos de la misma red. La instalación PWA en un celular requiere HTTPS con un certificado confiable; la dirección HTTP de la red local no proporciona por sí sola esa condición.
 
-Variables opcionales: `PORT`, `AULARAIZ_DATA_DIR`, `HTTPS_CERT` y `HTTPS_KEY`. Si se proporcionan los dos archivos TLS, el puerto predeterminado es 4174. No se genera ni confía automáticamente un certificado.
+Variables opcionales: `PORT`, `AULARAIZ_DATA_DIR`, `HTTPS_CERT` y `HTTPS_KEY`. Si se proporcionan los dos archivos TLS, el puerto predeterminado es 4174. Para configurar certificados locales con consentimiento explícito usa `npm run https:configurar -- --confiar` y luego `npm run https:iniciar`. No se genera ni confía automáticamente un certificado durante `npm start`.
 
 ## Cuentas de demostración
 

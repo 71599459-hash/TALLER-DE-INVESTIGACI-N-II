@@ -3,11 +3,27 @@ import { createWriteStream } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROOT, ensureDir, health, portOccupied, saveJson, waitForHealth, usageFailure } from './lib.mjs';
 
+function openBrowser() {
+  if (process.argv.includes('--sin-navegador')) return;
+  const url = 'http://127.0.0.1:4173/';
+  const command = process.platform === 'win32' ? 'cmd.exe'
+    : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  try {
+    const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+  } catch {
+    console.log('Abre la dirección manualmente:', url);
+  }
+}
+
 async function main() {
   const port = 4173;
   const existing = await health(port);
   if (existing) {
     console.log('AulaRaíz ya está ejecutándose en http://127.0.0.1:4173/');
+    openBrowser();
     return;
   }
   if (await portOccupied(port)) throw new Error('El puerto 4173 está ocupado por otra aplicación.');
@@ -43,6 +59,7 @@ async function main() {
   });
   child.unref();
   console.log('AulaRaíz disponible: http://127.0.0.1:4173/');
+  openBrowser();
   console.log('Se ejecuta en segundo plano. Para detenerlo: npm run detener');
 }
 
