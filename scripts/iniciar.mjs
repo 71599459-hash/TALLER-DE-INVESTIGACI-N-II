@@ -6,8 +6,8 @@ import { ROOT, ensureDir, health, portOccupied, saveJson, waitForHealth, usageFa
 function openBrowser() {
   if (process.argv.includes('--sin-navegador')) return;
   const url = 'http://127.0.0.1:4173/';
-  const command = process.platform === 'win32' ? 'cmd.exe'
-    : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const command =
+    process.platform === 'win32' ? 'cmd.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
   const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
   try {
     const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: true });
@@ -39,16 +39,22 @@ async function main() {
     stdio: ['ignore', output, errors],
     env: { ...process.env, PORT: String(port), HTTPS_CERT: '', HTTPS_KEY: '' }
   });
-  const spawnError = new Promise(resolve => child.once('error', resolve));
+  const spawnError = new Promise((resolve) => child.once('error', resolve));
   output.end();
   errors.end();
 
   const result = await Promise.race([
     waitForHealth(port),
-    spawnError.then(error => { throw error; })
+    spawnError.then((error) => {
+      throw error;
+    })
   ]);
   if (!result) {
-    try { child.kill(); } catch { /* El servidor ya terminó. */ }
+    try {
+      child.kill();
+    } catch {
+      /* El servidor ya terminó. */
+    }
     throw new Error('No se pudo iniciar AulaRaíz. Revisa logs/errores.log.');
   }
   await saveJson(resolve(logsDir, 'servidor.pid'), {
@@ -63,4 +69,4 @@ async function main() {
   console.log('Se ejecuta en segundo plano. Para detenerlo: npm run detener');
 }
 
-main().catch(error => usageFailure(error.message));
+main().catch((error) => usageFailure(error.message));

@@ -2,14 +2,16 @@
 const STORAGE_KEY = 'aularaiz-session';
 
 function validSession(value) {
-  return Boolean(value &&
-    typeof value.token === 'string' &&
-    /^[a-f0-9]{64}$/.test(value.token) &&
-    typeof value.serverId === 'string' &&
-    value.serverId.length > 0 &&
-    value.user &&
-    typeof value.user.id === 'string' &&
-    ['student', 'teacher', 'admin'].includes(value.user.role));
+  return Boolean(
+    value &&
+      typeof value.token === 'string' &&
+      /^[a-f0-9]{64}$/.test(value.token) &&
+      typeof value.serverId === 'string' &&
+      value.serverId.length > 0 &&
+      value.user &&
+      typeof value.user.id === 'string' &&
+      ['student', 'teacher', 'admin'].includes(value.user.role)
+  );
 }
 
 export function clearSession() {

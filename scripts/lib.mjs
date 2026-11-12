@@ -14,8 +14,12 @@ export function within(parent, target) {
 }
 
 export async function exists(path) {
-  try { await access(path, constants.F_OK); return true; }
-  catch { return false; }
+  try {
+    await access(path, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function ensureDir(path) {
@@ -31,10 +35,10 @@ export async function loadJson(path) {
 }
 
 export async function portOccupied(port, host = '127.0.0.1') {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const socket = net.createConnection({ port, host });
     let settled = false;
-    const finish = value => {
+    const finish = (value) => {
       if (settled) return;
       settled = true;
       socket.destroy();
@@ -53,16 +57,17 @@ export async function health(port = 4173) {
       cache: 'no-store'
     });
     const result = await response.json();
-    return response.ok && result.ok === true && typeof result.serverId === 'string'
-      ? result : null;
-  } catch { return null; }
+    return response.ok && result.ok === true && typeof result.serverId === 'string' ? result : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function waitForHealth(port, retries = 40) {
   for (let i = 0; i < retries; i++) {
     const result = await health(port);
     if (result) return result;
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
   return null;
 }

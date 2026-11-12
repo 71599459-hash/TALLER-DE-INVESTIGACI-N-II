@@ -1,15 +1,16 @@
-export function adminView({state,header,icon,esc}) {
+export function adminView({ state, header, icon, esc }) {
   const users = state.adminUsers || [];
-  const students = users.filter(user => user.role === 'student');
-  const teachers = users.filter(user => user.role === 'teacher');
-  const active = users.filter(user => user.isActive);
-  const admins = users.filter(user => user.role === 'admin');
+  const students = users.filter((user) => user.role === 'student');
+  const teachers = users.filter((user) => user.role === 'teacher');
+  const active = users.filter((user) => user.isActive);
+  const admins = users.filter((user) => user.role === 'admin');
   const title = {
     student: 'Alumno',
     teacher: 'Docente',
     admin: 'Administrador'
   };
-  const count = (number, label, symbol) => `<div class="stat-card"><span class="stat-icon">${icon(symbol)}</span><div><span class="stat-value">${number}</span><span class="stat-label">${label}</span></div></div>`;
+  const count = (number, label, symbol) =>
+    `<div class="stat-card"><span class="stat-icon">${icon(symbol)}</span><div><span class="stat-value">${number}</span><span class="stat-label">${label}</span></div></div>`;
   return `${header('Administración de usuarios', 'Gestiona las cuentas, permisos y cursos desde la misma base SQLite.')}
     <section class="panel admin-security">
       <div><h2>Seguridad del administrador</h2>
@@ -41,19 +42,25 @@ export function adminView({state,header,icon,esc}) {
           <table class="admin-users">
             <thead><tr><th>Usuario</th><th>Perfil</th><th>Estado</th><th>Cursos</th><th>Acciones</th></tr></thead>
             <tbody>
-              ${users.map(user => `<tr data-admin-user-row>
+              ${users
+                .map(
+                  (user) => `<tr data-admin-user-row>
                 <td><strong>${esc(user.name)}</strong><span class="small block">${esc(user.email)}</span></td>
                 <td>${title[user.role] || esc(user.role)}</td>
                 <td><span class="badge ${user.isActive ? 'badge-green' : 'badge-amber'}">${user.isActive ? 'Habilitado' : 'Deshabilitado'}</span></td>
                 <td>${user.role === 'student' ? user.courseIds.length : '—'}</td>
                 <td><div class="admin-row-actions">
-                  ${user.role === 'admin'
-                    ? '<span class="small">Protegido</span>'
-                    : `<button type="button" class="button button-ghost" data-action="admin-edit" data-id="${esc(user.id)}">Editar</button>
+                  ${
+                    user.role === 'admin'
+                      ? '<span class="small">Protegido</span>'
+                      : `<button type="button" class="button button-ghost" data-action="admin-edit" data-id="${esc(user.id)}">Editar</button>
                        <button type="button" class="button button-secondary" data-action="admin-reset-password" data-id="${esc(user.id)}">Restablecer contraseña</button>
-                       ${user.role === 'student' ? `<button type="button" class="button button-secondary" data-action="admin-courses" data-id="${esc(user.id)}">Cursos</button>` : ''}`}
+                       ${user.role === 'student' ? `<button type="button" class="button button-secondary" data-action="admin-courses" data-id="${esc(user.id)}">Cursos</button>` : ''}`
+                  }
                 </div></td>
-              </tr>`).join('')}
+              </tr>`
+                )
+                .join('')}
             </tbody>
           </table>
         </div>
@@ -62,7 +69,7 @@ export function adminView({state,header,icon,esc}) {
     </div>`;
 }
 
-export function adminEditForm({user,esc}) {
+export function adminEditForm({ user, esc }) {
   return `<form id="admin-edit-form" autocomplete="off">
     <input type="hidden" name="id" value="${esc(user.id)}">
     <div class="form-field"><label for="admin-edit-name">Nombre completo</label><input id="admin-edit-name" name="name" value="${esc(user.name)}" maxlength="160" required></div>
@@ -79,13 +86,13 @@ export function adminEditForm({user,esc}) {
   </form>`;
 }
 
-export function adminCoursesForm({user,courses,esc}) {
+export function adminCoursesForm({ user, courses, esc }) {
   const selected = new Set(user.courseIds);
   return `<form id="admin-courses-form">
     <input type="hidden" name="id" value="${esc(user.id)}">
     <p>Selecciona los cursos que puede consultar <strong>${esc(user.name)}</strong>. Puedes dejar todos desmarcados para restringir temporalmente el acceso.</p>
     <div class="admin-course-list">
-      ${courses.map(course => `<label class="admin-checkbox"><input type="checkbox" name="courseIds" value="${esc(course.id)}" ${selected.has(course.id) ? 'checked' : ''}><span><strong>${esc(course.title)}</strong><span class="small block">${esc(course.subject || course.description)}</span></span></label>`).join('')}
+      ${courses.map((course) => `<label class="admin-checkbox"><input type="checkbox" name="courseIds" value="${esc(course.id)}" ${selected.has(course.id) ? 'checked' : ''}><span><strong>${esc(course.title)}</strong><span class="small block">${esc(course.subject || course.description)}</span></span></label>`).join('')}
     </div>
     <p class="small">El cambio se aplicará en el servidor inmediatamente; el alumno verá su nueva selección cuando vuelva a conectarse.</p>
     <button type="submit" class="button button-primary">Guardar cursos habilitados</button>

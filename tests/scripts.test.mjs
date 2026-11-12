@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  rmSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ROOT, within } from '../scripts/lib.mjs';
@@ -41,7 +49,13 @@ test('respaldo completo conserva SQLite y archivos, sin modificar los originales
 });
 
 test('HTTPS no modifica la confianza del equipo sin confirmación explícita', () => {
-  assert.throws(() => execFileSync(process.execPath, [resolve(ROOT, 'scripts/https.mjs'), 'configurar'], {
-    cwd: ROOT, timeout: 10000, stdio: 'pipe'
-  }), error => error.status === 1 && String(error.stderr).includes('--confiar'));
+  assert.throws(
+    () =>
+      execFileSync(process.execPath, [resolve(ROOT, 'scripts/https.mjs'), 'configurar'], {
+        cwd: ROOT,
+        timeout: 10000,
+        stdio: 'pipe'
+      }),
+    (error) => error.status === 1 && String(error.stderr).includes('--confiar')
+  );
 });

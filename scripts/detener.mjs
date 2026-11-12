@@ -4,13 +4,17 @@ import { ROOT, exists, health, loadJson, usageFailure } from './lib.mjs';
 
 async function main() {
   const file = resolve(ROOT, 'logs/servidor.pid');
-  if (!await exists(file)) {
+  if (!(await exists(file))) {
     console.log('No hay una instancia en segundo plano registrada por AulaRaíz.');
     return;
   }
   const record = await loadJson(file);
-  if (!Number.isSafeInteger(record.pid) || record.pid <= 0 ||
-      record.port !== 4173 || typeof record.serverId !== 'string') {
+  if (
+    !Number.isSafeInteger(record.pid) ||
+    record.pid <= 0 ||
+    record.port !== 4173 ||
+    typeof record.serverId !== 'string'
+  ) {
     throw new Error('El registro del proceso no es válido. No se ha detenido ningún proceso.');
   }
   const current = await health(4173);
@@ -32,4 +36,4 @@ async function main() {
   console.log('Se solicitó detener AulaRaíz. Los datos en SQLite permanecen guardados.');
 }
 
-main().catch(error => usageFailure(error.message));
+main().catch((error) => usageFailure(error.message));

@@ -26,37 +26,53 @@ function run(command, args, env = process.env) {
 }
 
 function ipv4Addresses() {
-  return [...new Set(Object.values(networkInterfaces()).flatMap(items =>
-    (items || []).filter(item => item.family === 'IPv4' && !item.internal && !item.address.startsWith('169.254.'))
-      .map(item => item.address)))];
+  return [
+    ...new Set(
+      Object.values(networkInterfaces()).flatMap((items) =>
+        (items || [])
+          .filter(
+            (item) => item.family === 'IPv4' && !item.internal && !item.address.startsWith('169.254.')
+          )
+          .map((item) => item.address)
+      )
+    )
+  ];
 }
 
 async function configure() {
   if (!process.argv.includes('--confiar')) {
-    throw new Error('Para instalar la autoridad local de pruebas, ejecuta: npm run https:configurar -- --confiar [IPv4]. Este paso modifica la confianza de certificados del equipo.');
+    throw new Error(
+      'Para instalar la autoridad local de pruebas, ejecuta: npm run https:configurar -- --confiar [IPv4]. Este paso modifica la confianza de certificados del equipo.'
+    );
   }
-  const addresses = process.argv.slice(3).filter(arg => arg !== '--confiar');
+  const addresses = process.argv.slice(3).filter((arg) => arg !== '--confiar');
   const ips = addresses.length ? addresses : ipv4Addresses();
   for (const ip of ips) {
     if (isIP(ip) !== 4) throw new Error(`Dirección IPv4 no válida: ${ip}`);
   }
   const cmd = mkcertCommand();
-  if (process.platform === 'win32' && !await exists(cmd)) {
-    throw new Error('Falta tools/mkcert.exe. Descárgalo de https://github.com/FiloSottile/mkcert/releases.');
+  if (process.platform === 'win32' && !(await exists(cmd))) {
+    throw new Error(
+      'Falta tools/mkcert.exe. Descárgalo de https://github.com/FiloSottile/mkcert/releases.'
+    );
   }
   await mkdir(certs, { recursive: true });
-  const caRoot = process.platform === 'win32'
-    ? resolve(process.env.LOCALAPPDATA || homedir(), 'AulaRaiz', 'mkcert-ca')
-    : resolve(homedir(), '.local', 'share', 'aularaiz', 'mkcert-ca');
+  const caRoot =
+    process.platform === 'win32'
+      ? resolve(process.env.LOCALAPPDATA || homedir(), 'AulaRaiz', 'mkcert-ca')
+      : resolve(homedir(), '.local', 'share', 'aularaiz', 'mkcert-ca');
   await mkdir(caRoot, { recursive: true });
   const env = { ...process.env, CAROOT: caRoot };
 
   console.log('Se instalará una autoridad local de pruebas. Confirma cualquier solicitud del sistema.');
   run(cmd, ['-install'], env);
-  run(cmd, ['-cert-file', certificate, '-key-file', privateKey,
-    'localhost', '127.0.0.1', '::1', ...ips], env);
+  run(
+    cmd,
+    ['-cert-file', certificate, '-key-file', privateKey, 'localhost', '127.0.0.1', '::1', ...ips],
+    env
+  );
   const publicRootCA = join(caRoot, 'rootCA.pem');
-  if (!await exists(publicRootCA)) throw new Error('mkcert no generó rootCA.pem.');
+  if (!(await exists(publicRootCA))) throw new Error('mkcert no generó rootCA.pem.');
   const publicFolder = resolve(ROOT, 'instalacion');
   await mkdir(publicFolder, { recursive: true });
   await cp(publicRootCA, join(publicFolder, 'AulaRaiz-CA.crt'));
@@ -70,12 +86,14 @@ async function configure() {
   });
   console.log('HTTPS preparado. Inicia con: npm run https:iniciar');
   for (const ip of ips) console.log(`Red local: https://${ip}:4174/`);
-  console.log('Para el celular, instala y confía únicamente en el certificado público de esta autoridad local.');
+  console.log(
+    'Para el celular, instala y confía únicamente en el certificado público de esta autoridad local.'
+  );
   console.log('No compartas las claves privadas server-key.pem ni rootCA-key.pem.');
 }
 
 async function startHttps() {
-  if (!await exists(certificate) || !await exists(privateKey)) {
+  if (!(await exists(certificate)) || !(await exists(privateKey))) {
     throw new Error('Faltan certificados HTTPS. Primero ejecuta npm run https:configurar -- --confiar');
   }
   const script = resolve(ROOT, 'server', 'index.mjs');
@@ -88,6 +106,6 @@ async function startHttps() {
 }
 
 const command = process.argv[2];
-if (command === 'configurar') await configure().catch(error => usageFailure(error.message));
-else if (command === 'iniciar') await startHttps().catch(error => usageFailure(error.message));
+if (command === 'configurar') await configure().catch((error) => usageFailure(error.message));
+else if (command === 'iniciar') await startHttps().catch((error) => usageFailure(error.message));
 else usageFailure('Uso: node scripts/https.mjs configurar|iniciar');
