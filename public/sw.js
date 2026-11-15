@@ -1,10 +1,11 @@
-const CACHE = 'aularaiz-shell-v11';
+const CACHE = 'aularaiz-shell-v12';
 const SHELL = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
   '/login-demo.js',
+  '/attempts-view.js',
   '/admin.js',
   '/db.js',
   '/session.js',

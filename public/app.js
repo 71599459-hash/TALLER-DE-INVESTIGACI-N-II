@@ -1,6 +1,14 @@
 import * as db from './db.js';
 import { selectDemoUser } from './login-demo.js';
 import {
+  ALL_QUIZZES,
+  activeQuizFilter,
+  filterAttemptsByQuiz,
+  formatAttemptDate,
+  quizFilterOptions,
+  sortAttemptsNewestFirst
+} from './attempts-view.js';
+import {
   adminView,
   adminEditForm,
   adminCoursesForm,
@@ -27,7 +35,8 @@ const state = {
   notice: '',
   swReady: false,
   syncError: '',
-  adminUsers: []
+  adminUsers: [],
+  attemptQuiz: ALL_QUIZZES
 };
 const esc = (value) =>
   String(value ?? '').replace(
@@ -251,7 +260,10 @@ function teacherView() {
 }
 function teacherAttempts() {
   const attempts = state.data.attempts || [];
-  return `<section class="panel results-panel"><h2>Avance recibido de estudiantes</h2><p class="subtitle">${attempts.length} intentos sincronizados en el servidor local.</p>${attempts.length ? `<div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Cuestionario</th><th>Resultado</th></tr></thead><tbody>${attempts.map((a) => `<tr><td>${esc(a.studentName || a.userName || a.userId || 'Estudiante')}</td><td>${esc(state.data.quizzes.find((q) => q.id === a.quizId)?.title || a.quizId)}</td><td>${a.score}/${a.total} · ${a.percentage}%</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+  const options = quizFilterOptions(attempts, state.data.quizzes);
+  const selected = activeQuizFilter(options, state.attemptQuiz);
+  const shown = sortAttemptsNewestFirst(filterAttemptsByQuiz(attempts, selected));
+  return `<section class="panel results-panel"><h2>Avance recibido de estudiantes</h2><p class="subtitle">${attempts.length} intentos sincronizados en el servidor local.</p>${attempts.length ? `<div class="toolbar"><div class="toolbar-group"><label class="small" for="attempts-quiz-filter">Filtrar por cuestionario</label><select id="attempts-quiz-filter"><option value="${ALL_QUIZZES}">Todos los cuestionarios</option>${options.map((o) => `<option value="${esc(o.id)}" ${o.id === selected ? 'selected' : ''}>${esc(o.title)}</option>`).join('')}</select></div><span class="small" role="status">Mostrando ${shown.length} de ${attempts.length} intentos</span></div><div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Cuestionario</th><th>Resultado</th><th>Recibido</th></tr></thead><tbody>${shown.map((a) => `<tr><td>${esc(a.studentName || a.userName || a.userId || 'Estudiante')}</td><td>${esc(state.data.quizzes.find((q) => q.id === a.quizId)?.title || a.quizId)}</td><td>${a.score}/${a.total} · ${a.percentage}%</td><td>${esc(formatAttemptDate(a.submittedAt))}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
 }
 function questionEditor(n) {
   return `<fieldset class="question-editor"><legend>Pregunta ${n + 1}</legend><div class="form-field"><label for="q${n}">Enunciado</label><input id="q${n}" name="prompt-${n}" required maxlength="500"></div>${[0, 1, 2].map((i) => `<div class="form-field"><label for="q${n}o${i}">Opción ${i + 1}</label><input id="q${n}o${i}" name="option-${n}-${i}" required maxlength="300"></div>`).join('')}<div class="form-field"><label for="correct-${n}">Respuesta correcta</label><select id="correct-${n}" name="correct-${n}"><option value="0">Opción 1</option><option value="1">Opción 2</option><option value="2">Opción 3</option></select></div></fieldset>`;
@@ -399,7 +411,8 @@ async function sync(manual = false) {
     if (
       !state.modal &&
       !document.querySelector('form :focus') &&
-      !document.querySelector('#course-search:focus')
+      !document.querySelector('#course-search:focus') &&
+      !document.querySelector('#attempts-quiz-filter:focus')
     )
       render();
   }
@@ -789,6 +802,12 @@ document.addEventListener('submit', async (event) => {
   }
 });
 document.addEventListener('change', async (event) => {
+  if (event.target.id === 'attempts-quiz-filter') {
+    state.attemptQuiz = event.target.value;
+    render();
+    // Conserva el foco en el filtro para seguir usando el teclado.
+    document.querySelector('#attempts-quiz-filter')?.focus();
+  }
   if (event.target.id === 'material-type') {
     const article = event.target.value === 'article';
     document.querySelector('#article-field').hidden = !article;

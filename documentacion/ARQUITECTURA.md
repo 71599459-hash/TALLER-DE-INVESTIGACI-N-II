@@ -6,7 +6,7 @@ La aplicación mantiene tres áreas de responsabilidad:
 
 | Componente | Archivos | Responsabilidad |
 | --- | --- | --- |
-| Interfaz | `public/index.html`, `public/styles.css`, `public/app.js`, `public/admin.js` | Pantallas para estudiantes, docentes y administración |
+| Interfaz | `public/index.html`, `public/styles.css`, `public/app.js`, `public/admin.js`, `public/attempts-view.js` | Pantallas para estudiantes, docentes y administración |
 | Cliente sin conexión | `public/db.js`, `public/sw.js`, `public/session.js` | IndexedDB, caché de la aplicación y sesiones en el navegador |
 | Servidor y datos | `server/index.mjs`, `server/access.mjs`, `server/seed.mjs` | API REST, validación, permisos, cursos, SQLite y datos de demostración |
 
